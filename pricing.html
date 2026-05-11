@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – الباقات والاشتراكات</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    /* ── Pricing Page Hero Header ── */
+.page-header--pricing {
+  padding: 120px 24px 60px;
+  background: #ffffff;
+}
+
+    .page-header--pricing::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      top: -180px; left: 50%; transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,184,232,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .pricing-hero-title {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 14px;
+    }
+    .pricing-hero-sub {
+      text-align: center;
+      margin: 0 auto 0;
+      max-width: 580px;
+    }
+    .billing-toggle { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 56px; }
+    /* ── Glassmorphism background ── */
+    .plans-section {
+      padding: 80px 0 100px;
+      background: linear-gradient(135deg, #FFF9EC 0%, #FFF3D0 30%, #FFE8B0 60%, #FFF0D4 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .plans-section::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      top: -200px; right: -150px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,184,0,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .plans-section::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      bottom: -100px; left: -100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,0,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    /* Glass cards */
+    .plan-card {
+      background: rgba(255,255,255,0.75) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(255,255,255,0.9) !important;
+      box-shadow: 0 8px 32px rgba(255,140,0,0.10), 0 2px 8px rgba(0,0,0,0.06) !important;
+    }
+    .plan-card.popular {
+      background: rgba(255,255,255,0.92) !important;
+      border-color: var(--sun-yellow) !important;
+      box-shadow: 0 16px 48px rgba(255,184,0,0.22), 0 4px 16px rgba(0,0,0,0.08) !important;
+    }
+    /* Toggle */
+    .billing-toggle { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 56px; }
+    .billing-toggle span { font-size: 0.95rem; font-weight: 600; color: var(--gray-500); }
+    .billing-toggle span.active { color: var(--gray-900); }
+    .toggle-track { width: 52px; height: 28px; background: var(--gray-200); border-radius: 50px; position: relative; cursor: pointer; transition: var(--transition); }
+    .toggle-track.on { background: var(--gradient-sun); }
+    .toggle-thumb { width: 22px; height: 22px; background: var(--white); border-radius: 50%; position: absolute; top: 3px; right: 3px; transition: var(--transition); box-shadow: var(--shadow-sm); }
+    .toggle-track.on .toggle-thumb { right: auto; left: 3px; }
+    .save-badge { background: var(--gradient-sun); color: var(--white); font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
+    /* Table */
+    .plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: start; position: relative; z-index: 1; }
+    .plan-card { border-radius: var(--radius-xl); padding: 36px 32px; transition: var(--transition); position: relative; }
+    .plan-card:hover { transform: translateY(-4px); }
+    .plan-card.popular { transform: translateY(-8px); }
+    .popular-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--gradient-sun); color: var(--white); font-size: 0.78rem; font-weight: 800; padding: 6px 20px; border-radius: 50px; white-space: nowrap; box-shadow: var(--shadow-sun); }
+    .plan-icon { width: 60px; height: 60px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .plan-icon.free { background: linear-gradient(135deg, #E8F6FD, #C8EDFE); }
+    .plan-icon.pro { background: linear-gradient(135deg, rgba(255,184,0,0.15), rgba(255,107,53,0.10)); }
+    .plan-icon.enterprise { background: linear-gradient(135deg, #EEF0F4, #DDE1E9); }
+    .plan-name { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 6px; }
+    .plan-desc { font-size: 0.88rem; color: var(--gray-500); margin-bottom: 24px; line-height: 1.6; }
+    .plan-price { margin-bottom: 28px; }
+    .price-amount { font-size: 2.8rem; font-weight: 800; color: var(--gray-900); line-height: 1; }
+    .price-amount .currency { font-size: 1.2rem; font-weight: 600; vertical-align: top; margin-top: 8px; display: inline-block; color: var(--gray-600); }
+    .price-amount .period { font-size: 0.88rem; font-weight: 500; color: var(--gray-500); margin-right: 4px; }
+    .price-free { font-size: 2rem; font-weight: 800; color: var(--success); }
+    .price-note { font-size: 0.80rem; color: var(--gray-400); margin-top: 4px; }
+    .plan-features { list-style: none; margin-bottom: 32px; }
+    .plan-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; color: var(--gray-700); padding: 9px 0; border-bottom: 1px solid rgba(0,0,0,0.06); line-height: 1.5; }
+    .plan-features li:last-child { border-bottom: none; }
+    .feat-check { color: var(--sun-gold); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .feat-cross { opacity: 0.35; flex-shrink: 0; margin-top: 2px; }
+    .plan-btn-primary { width: 100%; padding: 14px; font-size: 0.95rem; border-radius: var(--radius-md); }
+    .plan-btn-outline { width: 100%; padding: 14px; font-size: 0.95rem; border-radius: var(--radius-md); background: transparent; color: var(--sun-gold); border: 2px solid var(--sun-yellow); font-family: var(--font-body); font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .plan-btn-outline:hover { background: rgba(255,184,0,0.08); }
+    .plan-btn-dark { width: 100%; padding: 14px; font-size: 0.95rem; border-radius: var(--radius-md); background: var(--gray-800); color: var(--white); border: none; font-family: var(--font-body); font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .plan-btn-dark:hover { background: var(--gray-900); }
+    /* FAQ */
+    .faq-section { padding: 80px 0; background: var(--white); }
+    .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; margin: 0 auto; }
+    .faq-item { background: var(--gray-50); border-radius: var(--radius-md); border: 1px solid var(--gray-100); overflow: hidden; }
+    .faq-q { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; cursor: pointer; font-weight: 600; font-size: 0.95rem; color: var(--gray-800); gap: 12px; }
+    .faq-q .faq-arrow { color: var(--sun-gold); font-size: 1rem; transition: var(--transition); flex-shrink: 0; }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+    .faq-a { padding: 0 22px; max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; font-size: 0.88rem; color: var(--gray-600); line-height: 1.7; }
+    .faq-item.open .faq-a { padding: 0 22px 18px; max-height: 200px; }
+    /* Compare Table */
+    /* Compare Table */
+.compare-section {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #FFF9EC 0%, #FFF3D0 100%);
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(255,140,0,0.12);
+}
+
+/* ✨ الهيدر كامل برتقالي */
+.compare-table th {
+  background: linear-gradient(135deg, #FF9800, #FFA726) !important;
+  color: #fff;
+  padding: 18px 24px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ✨ العمود الأول */
+.compare-table th:first-child {
+  text-align: right;
+  background: linear-gradient(135deg, #FF9800, #FFA726) !important;
+}
+
+/* ⭐ الاحترافية تبقى مميزة */
+.compare-table th.highlight {
+  background: linear-gradient(135deg, #FF8C00, #FFA726);
+}
+
+/* باقي الجدول */
+.compare-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255,184,0,0.12);
+  font-size: 0.9rem;
+  text-align: center;
+  background: rgba(255,255,255,0.85);
+  color: var(--gray-700);
+}
+
+.compare-table td:first-child {
+  text-align: right;
+  font-weight: 600;
+  color: var(--gray-800);
+  background: rgba(255,249,236,0.9);
+}
+
+.compare-table td.highlight {
+  background: rgba(255,184,0,0.06);
+}
+
+.compare-table tr:last-child td {
+  border-bottom: none;
+}
+    @media (max-width: 960px) { .plans-grid { grid-template-columns: 1fr; max-width: 500px; margin: 0 auto; } .plan-card.popular { transform: none; } .faq-grid { grid-template-columns: 1fr; } .compare-section { overflow-x: auto; } }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="logo" href="index.html"><img src="shams.png" alt="شعار شمس" class="logo-img"></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html" data-page="index.html">الرئيسية</a></li>
+      <li><a href="index.html#about-section">نظرة عامة</a></li>
+      <li><a href="pricing.html" data-page="pricing.html">الاشتراكات</a></li>
+      <li><a href="roof.html" data-page="roof.html">الحاسبة </a></li>
+    </ul>
+    <div class="nav-auth-btns" id="navAuthBtns">
+      <button class="nav-login-btn" onclick="location.href='login.html'">تسجيل الدخول</button>
+      <button class="nav-cta-btn" id="openChatBtn">💬 المساعد الذكي</button>
+    </div>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header page-header--pricing text-center">
+  <div class="section-label">الاشتراكات</div>
+  <h1 class="section-title pricing-hero-title">اختر خطتك وابدأ رحلتك الشمسية بسهولة</h1>
+  <p class="section-sub pricing-hero-sub">اختر الباقة التي تناسبك وابدأ رحلتك الشمسية بسهولة — ادفع شهرياً أو وفّر بالاشتراك السنوي</p>
+  <div class="billing-toggle" style="margin-top:28px">
+    <span id="lblMonthly" class="active">شهري</span>
+    <div class="toggle-track" id="billingToggle" onclick="toggleBilling()"><div class="toggle-thumb"></div></div>
+    <span id="lblYearly">سنوي</span>
+    <span class="save-badge" id="saveBadge" style="opacity:0.4">وفّر مع السنوي</span>
+  </div>
+</div>
+
+<!-- PLANS -->
+<section class="plans-section">
+  <div class="container">
+    <div class="plans-grid">
+
+      <!-- المجانية -->
+      <div class="plan-card">
+        <div class="plan-icon free">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28"><path d="M24 40V22" stroke="#4AB8E8" stroke-width="2" stroke-linecap="round"/><path d="M24 22C24 14 15 10 8 13c0 8 5 12 16 9" stroke="#4AB8E8" stroke-width="2" stroke-linecap="round"/><path d="M24 28c0-6 9-10 16-7 0 7-5 11-16 7" stroke="#4AB8E8" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="plan-name">المجانية</div>
+        <p class="plan-desc">ابدأ بدون أي التزام. استكشف المنصة وجرّب الحاسبة الأساسية مجاناً.</p>
+        <div class="plan-price">
+          <div class="price-free">مجاني</div>
+          <div style="font-size:0.82rem;color:var(--gray-400);margin-top:4px">للأبد — بدون بطاقة بنكية</div>
+        </div>
+        <ul class="plan-features">
+          <li><span class="feat-check">✓</span> حساب شمسي أساسي</li>
+          <li><span class="feat-check">✓</span> 3 حسابات شهرياً</li>
+          <li><span class="feat-check">✓</span> تحديد السطح الأساسي</li>
+          <li><span class="feat-check">✓</span> المساعد الذكي (5 رسائل)</li>
+          <li><span class="feat-cross">✕</span> <span style="opacity:0.5">تقارير PDF مفصّلة</span></li>
+          <li><span class="feat-cross">✕</span> <span style="opacity:0.5">مقارنة شركات التركيب</span></li>
+          <li><span class="feat-cross">✕</span> <span style="opacity:0.5">دعم ذو أولوية</span></li>
+        </ul>
+        <button class="plan-btn-outline" onclick="location.href='register.html'">ابدأ مجاناً</button>
+      </div>
+
+      <!-- الاحترافية -->
+      <div class="plan-card popular">
+        <div class="popular-badge">الأكثر طلباً</div>
+        <div class="plan-icon pro">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28"><circle cx="24" cy="24" r="7" stroke="#EEA141" stroke-width="2"/><line x1="24" y1="6" x2="24" y2="11" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="24" y1="37" x2="24" y2="42" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="24" x2="11" y2="24" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="37" y1="24" x2="42" y2="24" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="11" x2="14.5" y2="14.5" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="33.5" y1="33.5" x2="37" y2="37" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="37" y1="11" x2="33.5" y2="14.5" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/><line x1="14.5" y1="33.5" x2="11" y2="37" stroke="#EEA141" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="plan-name">الاحترافية</div>
+        <p class="plan-desc">للأفراد والمنازل الذين يريدون أقصى استفادة من الطاقة الشمسية.</p>
+        <div class="plan-price">
+          <div class="price-amount">
+            <span class="currency">ر.س</span>
+            <span id="proPrice">49</span>
+            <span class="period">/شهر</span>
+          </div>
+          <div class="price-note" id="proNote">صالح لـ 3 أشهر</div>
+        </div>
+        <ul class="plan-features">
+          <li><span class="feat-check">✓</span> حسابات غير محدودة</li>
+          <li><span class="feat-check">✓</span> تقارير PDF مفصّلة</li>
+          <li><span class="feat-check">✓</span> تحديد السطح المتقدم</li>
+          <li><span class="feat-check">✓</span> مساعد ذكي غير محدود</li>
+          <li><span class="feat-check">✓</span> مقارنة حتى 5 شركات تركيب</li>
+          <li><span class="feat-check">✓</span> حفظ وتتبع الحسابات</li>
+          <li><span class="feat-cross">✕</span> <span style="opacity:0.5">API للشركات</span></li>
+        </ul>
+        <button class="btn-primary plan-btn-primary" onclick="selectPlan('pro')">اشترك الآن</button>
+      </div>
+
+      <!-- المؤسسية -->
+      <div class="plan-card">
+        <div class="plan-icon enterprise">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28"><rect x="8" y="20" width="32" height="20" rx="2" stroke="#5A6478" stroke-width="2"/><path d="M16 20v-6a8 8 0 0116 0v6" stroke="#5A6478" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="30" r="3" stroke="#5A6478" stroke-width="2"/></svg>
+        </div>
+        <div class="plan-name">المؤسسية</div>
+        <p class="plan-desc">للشركات والمقاولين الذين يديرون مشاريع شمسية متعددة بكفاءة عالية.</p>
+        <div class="plan-price">
+          <div class="price-amount">
+            <span class="currency">ر.س</span>
+            <span id="entPrice">149</span>
+            <span class="period">/شهر</span>
+          </div>
+          <div class="price-note" id="entNote">يُجدَّد شهرياً</div>
+        </div>
+        <ul class="plan-features">
+          <li><span class="feat-check">✓</span> جميع مميزات الاحترافية</li>
+          <li><span class="feat-check">✓</span> مشاريع غير محدودة</li>
+          <li><span class="feat-check">✓</span> API للتكامل مع أنظمتك</li>
+          <li><span class="feat-check">✓</span> لوحة إدارة الفريق</li>
+          <li><span class="feat-check">✓</span> مقارنة شركات غير محدودة</li>
+          <li><span class="feat-check">✓</span> دعم هاتفي مباشر</li>
+          <li><span class="feat-check">✓</span> تقارير مخصصة للعملاء</li>
+        </ul>
+        <button class="plan-btn-dark" onclick="selectPlan('enterprise')">تواصل معنا</button>
+      </div>
+
+    </div>
+
+    <div style="text-align:center;margin-top:48px;padding:28px 24px;background:var(--white);border-radius:var(--radius-xl);border:1px solid var(--gray-100);box-shadow:var(--shadow-sm)">
+      <p style="font-size:1.05rem;color:var(--gray-700)"><strong>ضمان استرداد المبلغ خلال 14 يوم</strong> — بدون أسئلة، بدون شروط</p>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE TABLE -->
+<section class="compare-section">
+  <div class="container text-center">
+    <div class="section-label">المقارنة</div>
+    <h2 class="section-title">مقارنة شاملة بين الباقات</h2>
+    <div style="overflow-x:auto;margin-top:40px">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>الميزة</th><th>المجانية</th><th class="highlight">الاحترافية ⭐</th><th>المؤسسية</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>عدد الحسابات الشهرية</td><td>3</td><td class="highlight">غير محدود</td><td>غير محدود</td></tr>
+          <tr><td>تقارير PDF</td><td>✕</td><td class="highlight">✅</td><td>✅</td></tr>
+          <tr><td>تحديد شكل السطح</td><td>أساسي</td><td class="highlight">متقدم</td><td>متقدم</td></tr>
+          <tr><td>المساعد الذكي</td><td>5 رسائل/يوم</td><td class="highlight">غير محدود</td><td>غير محدود</td></tr>
+          <tr><td>مقارنة شركات التركيب</td><td>✕</td><td class="highlight">حتى 5 شركات</td><td>غير محدود</td></tr>
+          <tr><td>حفظ وتتبع الحسابات</td><td>✕</td><td class="highlight">✅</td><td>✅</td></tr>
+          <tr><td>API للتكامل</td><td>✕</td><td class="highlight">✕</td><td>✅</td></tr>
+          <tr><td>إدارة الفريق</td><td>✕</td><td class="highlight">✕</td><td>✅</td></tr>
+          <tr><td>الدعم الفني</td><td>بريد إلكتروني</td><td class="highlight">أولوية</td><td>هاتف مباشر</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="container text-center">
+    <div class="section-label">الأسئلة الشائعة</div>
+    <h2 class="section-title">أسئلة حول الاشتراكات</h2>
+    <div class="faq-grid" style="margin-top:40px">
+      <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">هل يمكنني تغيير باقتي لاحقاً؟<span class="faq-arrow">▼</span></div><div class="faq-a">نعم، يمكنك الترقية أو التخفيض في أي وقت. سيتم تعديل الفاتورة بشكل تناسبي.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">كيف يعمل الضمان 14 يوم؟<span class="faq-arrow">▼</span></div><div class="faq-a">إذا لم تكن راضياً خلال 14 يوماً من الاشتراك، سنعيد لك المبلغ كاملاً بدون أي شروط.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">هل يتجدد الاشتراك تلقائياً؟<span class="faq-arrow">▼</span></div><div class="faq-a">نعم، الاشتراك يتجدد تلقائياً. يمكنك إلغاؤه في أي وقت من لوحة التحكم.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">ما طرق الدفع المتاحة؟<span class="faq-arrow">▼</span></div><div class="faq-a">نقبل بطاقات Visa، MasterCard، مدى، وSTC Pay وApple Pay.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">هل الباقة المجانية محدودة زمنياً؟<span class="faq-arrow">▼</span></div><div class="faq-a">لا، الباقة المجانية متاحة للأبد مع حدود استخدام يومية.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">هل أحتاج إلى بطاقة للتسجيل المجاني؟<span class="faq-arrow">▼</span></div><div class="faq-a">لا، التسجيل المجاني لا يتطلب أي بيانات بنكية.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer" id="main-footer">
+  <div class="container">
+    <div class="footer-logo">
+      <img src="shams.png" alt="شعار شمس" class="logo-img">
+    </div>
+    <nav class="footer-nav">
+      <a href="index.html">الرئيسية</a>
+      <a href="index.html#features">المميزات</a>
+      <a href="index.html#about-section">نظرة عامة</a>
+      <a href="pricing.html">الاشتراكات</a>
+      <a href="roof.html">الحاسبة</a>
+      <li><a href="monitor.html"><span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#FF8C00;display:inline-block;animation:sunPulse 3s ease-in-out infinite;"></span>المراقب الحي</span></a></li>
+      <a href="login.html">تسجيل الدخول</a>
+    </nav>
+    <div class="footer-divider"></div>
+    <p>منصة حاسبة الطاقة الشمسية للمملكة العربية السعودية</p>
+    <p class="footer-copy"> أول الطريق نحو إنجاز أكبر&nbsp;|&nbsp; مشروع تخرج طالبات برمجة  &nbsp;|&nbsp; © 2026 شمس. جميع الحقوق محفوظة</p>
+  </div>
+</footer>
+
+<!-- CHATBOT -->
+<div class="chat-widget" id="chatWidget">
+  <div class="chat-header"><div class="chat-header-info"><img src="shams.png" alt="شمس" class="chat-avatar-logo"><div><strong>مساعد شمس</strong><span class="chat-status">متصل الآن</span></div></div><button class="chat-close" id="closeChatBtn">✕</button></div>
+  <div class="chat-messages" id="chatMessages"><div class="msg bot"><div class="msg-bubble">مرحباً! 🌞 هل تحتاج مساعدة في اختيار الباقة المناسبة؟</div></div></div>
+  <div class="chat-input-area"><input type="text" id="chatInput" placeholder="اسأل عن الباقات..." /><button id="sendMsgBtn">➤</button></div>
+</div>
+<button class="chat-bubble" id="chatBubble"><img src="shams.png" alt="شمس" style="width:30px;height:30px;border-radius:50%;object-fit:cover;"></button>
+
+<script src="app.js"></script>
+<script>
+let isYearly = false;
+
+// الأسعار الصحيحة
+const PRICES = {
+  pro:        { monthly: 49,  monthlyNote: 'صالح لـ 3 أشهر', yearly: 249,  yearlyNote: 'سنوياً — وفّر مقارنة بالشهري' },
+  enterprise: { monthly: 149, monthlyNote: 'يُجدَّد شهرياً',  yearly: 1490, yearlyNote: 'سنوياً — أفضل قيمة للشركات' }
+};
+
+function toggleBilling() {
+  isYearly = !isYearly;
+  document.getElementById('billingToggle').classList.toggle('on', isYearly);
+  document.getElementById('lblMonthly').classList.toggle('active', !isYearly);
+  document.getElementById('lblYearly').classList.toggle('active',  isYearly);
+  document.getElementById('saveBadge').style.opacity = isYearly ? '1' : '0.4';
+
+  const pKey = isYearly ? 'yearly' : 'monthly';
+  const nKey = isYearly ? 'yearlyNote' : 'monthlyNote';
+
+  document.getElementById('proPrice').textContent  = PRICES.pro[pKey];
+  document.getElementById('proNote').textContent   = PRICES.pro[nKey];
+  document.getElementById('entPrice').textContent  = PRICES.enterprise[pKey];
+  document.getElementById('entNote').textContent   = PRICES.enterprise[nKey];
+
+  // تحديث period label
+  document.querySelectorAll('.period').forEach(el => {
+    el.textContent = isYearly ? '/سنة' : '/شهر';
+  });
+}
+
+// ── الناف بار حسب الجلسة ─────────────────────────────────
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', session.user.id).single();
+    const name = profile?.full_name || session.user.email;
+    document.getElementById('navAuthBtns').innerHTML = `
+      <a href="profile.html" class="nav-user-name" style="text-decoration:none;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${name}</a>
+      <button class="nav-logout-btn" onclick="doLogout()" style="background:none;border:1.5px solid var(--gray-200);color:var(--gray-600);font-family:var(--font-body);font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:50px;cursor:pointer;">تسجيل الخروج</button>
+      <button class="nav-cta-btn" id="openChatBtn">المساعد الذكي</button>
+    `;
+    document.getElementById('openChatBtn')?.addEventListener('click', toggleChat);
+  }
+})();
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.href = 'login.html';
+}
+
+function selectPlan(plan) {
+  if (plan === 'enterprise') {
+    alert('سيتواصل فريقنا معك قريباً لمناقشة احتياجاتك المؤسسية!');
+    return;
+  }
+  const pKey = isYearly ? 'yearly' : 'monthly';
+  const price = PRICES[plan][pKey];
+  const names = { pro: 'الاحترافية', enterprise: 'المؤسسية' };
+  localStorage.setItem('shams_plan', JSON.stringify({
+    name: names[plan], planKey: plan, price, yearly: isYearly
+  }));
+  location.href = 'payment.html';
+}
+
+function toggleFaq(el) {
+  const item = el.parentElement;
+  document.querySelectorAll('.faq-item.open').forEach(f => { if (f !== item) f.classList.remove('open'); });
+  item.classList.toggle('open');
+}
+</script>
+</body>
+</html>

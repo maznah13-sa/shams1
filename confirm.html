@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – تأكيد الحساب</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    body{background:linear-gradient(135deg,#FFF9EC 0%,#FFF0D0 30%,#FFE4A0 60%,#FFF3D0 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .confirm-card{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-radius:24px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(255,184,0,.2);border:1px solid rgba(255,255,255,.8)}
+    .confirm-icon{font-size:4rem;margin-bottom:16px;display:block}
+    .confirm-card h2{font-size:1.7rem;font-weight:800;color:#111;margin-bottom:8px}
+    .confirm-card p{font-size:.92rem;color:#666;line-height:1.6;margin-bottom:24px}
+    .spinner{width:48px;height:48px;border:4px solid #FFE4A0;border-top-color:#FFB800;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* نموذج تغيير كلمة المرور */
+    .reset-form{display:none;text-align:right}
+    .reset-form.show{display:block}
+    .field-wrap{margin-bottom:16px}
+    .field-wrap label{display:block;font-size:.85rem;font-weight:600;color:#444;margin-bottom:6px}
+    .field-input{width:100%;padding:13px 14px;border:2px solid #e5e5e5;border-radius:12px;font-family:inherit;font-size:.92rem;color:#222;background:#fafafa;outline:none;transition:.2s;direction:rtl;box-sizing:border-box}
+    .field-input:focus{border-color:#FFB800;box-shadow:0 0 0 4px rgba(255,184,0,.12)}
+    .field-input.err{border-color:#e74c3c}
+    .pw-wrap{position:relative}
+    .eye-btn{position:absolute;left:13px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#aaa}
+    .field-err{font-size:.75rem;color:#e74c3c;margin-top:4px;display:none}
+    .field-err.show{display:block}
+    .pw-strength{margin-top:5px;display:none}
+    .pw-bar{height:4px;background:#eee;border-radius:50px;overflow:hidden;margin-bottom:3px}
+    .pw-fill{height:100%;border-radius:50px;transition:all .4s;width:0}
+    .pw-lbl{font-size:.72rem;font-weight:600}
+    .submit-btn{width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#FFB800,#FF8C00);border:none;color:#fff;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:6px}
+    .submit-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,140,0,.4)}
+    .submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .alert{border-radius:12px;padding:12px 16px;font-size:.88rem;margin-bottom:16px;display:none;text-align:right}
+    .alert.show{display:block}
+    .alert.err{background:#fff0f0;border:1px solid #fcc;color:#c0392b}
+    .alert.ok{background:#f0fff4;border:1px solid #b2f5c8;color:#1a7a3a}
+    .go-btn{display:inline-block;margin-top:8px;padding:13px 32px;border-radius:14px;background:linear-gradient(135deg,#FFB800,#FF8C00);color:#fff;font-weight:700;font-size:.95rem;text-decoration:none;cursor:pointer;border:none;font-family:inherit}
+  </style>
+</head>
+<body>
+
+<div class="confirm-card" id="card">
+  <!-- حالة التحميل الأولية -->
+  <div id="loadingState">
+    <div class="spinner"></div>
+    <h2>جارٍ التحقق...</h2>
+    <p>لحظة من فضلك</p>
+  </div>
+
+  <!-- تأكيد الحساب ناجح -->
+  <div id="successState" style="display:none">
+    <span class="confirm-icon">✅</span>
+    <h2>تم تأكيد حسابك!</h2>
+    <p>مرحباً بك في شمس — حسابك مفعّل الآن ويمكنك تسجيل الدخول.</p>
+    <button class="go-btn" onclick="location.href='login.html'">تسجيل الدخول ←</button>
+  </div>
+
+  <!-- إعادة تعيين كلمة المرور -->
+  <div id="resetState" style="display:none">
+    <span class="confirm-icon">🔐</span>
+    <h2>كلمة مرور جديدة</h2>
+    <p>اختر كلمة مرور قوية لحسابك</p>
+
+    <div class="reset-form show">
+      <div class="alert err" id="resetErr"></div>
+      <div class="alert ok" id="resetOk"></div>
+
+      <div class="field-wrap">
+        <label>كلمة المرور الجديدة</label>
+        <div class="pw-wrap">
+          <input class="field-input" type="password" id="pw1" placeholder="8 أحرف على الأقل" oninput="checkPw(this.value)" style="padding-left:44px" />
+          <button class="eye-btn" type="button" onclick="toggleEye('pw1',this)">👁</button>
+        </div>
+        <div class="pw-strength" id="pwStr">
+          <div class="pw-bar"><div class="pw-fill" id="pwFill"></div></div>
+          <span class="pw-lbl" id="pwLbl"></span>
+        </div>
+        <div class="field-err" id="pw1Err">8 أحرف على الأقل</div>
+      </div>
+
+      <div class="field-wrap">
+        <label>تأكيد كلمة المرور</label>
+        <div class="pw-wrap">
+          <input class="field-input" type="password" id="pw2" placeholder="أعد كتابة كلمة المرور" style="padding-left:44px" />
+          <button class="eye-btn" type="button" onclick="toggleEye('pw2',this)">👁</button>
+        </div>
+        <div class="field-err" id="pw2Err">كلمتا المرور غير متطابقتان</div>
+      </div>
+
+      <button class="submit-btn" id="resetBtn" onclick="doReset()">حفظ كلمة المرور الجديدة</button>
+    </div>
+  </div>
+
+  <!-- خطأ عام -->
+  <div id="errorState" style="display:none">
+    <span class="confirm-icon">❌</span>
+    <h2>رابط غير صالح</h2>
+    <p id="errorMsg">الرابط منتهي الصلاحية أو مستخدم مسبقاً. اطلب رابطاً جديداً.</p>
+    <button class="go-btn" onclick="location.href='login.html'">الرجوع لتسجيل الدخول</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   confirm.html
+   يستقبل حالتين من Supabase:
+   1. signup   → تأكيد الحساب
+   2. recovery → إعادة تعيين كلمة المرور
+════════════════════════════════════════════════════ */
+
+function show(id){
+  ['loadingState','successState','resetState','errorState'].forEach(s=>{
+    document.getElementById(s).style.display = s===id ? 'block' : 'none'
+  })
+}
+
+function toggleEye(id,btn){
+  const i=document.getElementById(id)
+  i.type=i.type==='password'?'text':'password'
+  btn.textContent=i.type==='password'?'👁':'🙈'
+}
+
+function checkPw(v){
+  const str=document.getElementById('pwStr'),fill=document.getElementById('pwFill'),lbl=document.getElementById('pwLbl')
+  str.style.display=v.length>0?'block':'none'
+  let s=0
+  if(v.length>=8)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++
+  const lv=[{w:'25%',c:'#E74C3C',t:'ضعيفة جداً'},{w:'50%',c:'#FF8C00',t:'ضعيفة'},{w:'75%',c:'#FFB800',t:'متوسطة'},{w:'100%',c:'#27AE60',t:'قوية ✓'}][Math.max(0,s-1)]
+  fill.style.width=lv.w;fill.style.background=lv.c;lbl.textContent=lv.t;lbl.style.color=lv.c
+}
+
+async function doReset(){
+  const p1=document.getElementById('pw1').value
+  const p2=document.getElementById('pw2').value
+  const errEl=document.getElementById('resetErr')
+  const okEl=document.getElementById('resetOk')
+
+  document.getElementById('pw1Err').classList.remove('show')
+  document.getElementById('pw2Err').classList.remove('show')
+  errEl.classList.remove('show')
+  okEl.classList.remove('show')
+
+  if(p1.length<8){document.getElementById('pw1Err').classList.add('show');return}
+  if(p1!==p2){document.getElementById('pw2Err').classList.add('show');return}
+
+  const btn=document.getElementById('resetBtn')
+  btn.disabled=true;btn.textContent='...جارٍ الحفظ'
+
+  try{
+    const {error}=await sb.auth.updateUser({password:p1})
+    if(error)throw error
+    okEl.textContent='✅ تم تغيير كلمة المرور بنجاح — سيتم توجيهك لتسجيل الدخول'
+    okEl.classList.add('show')
+    setTimeout(()=>location.href='login.html',2500)
+  }catch(err){
+    errEl.textContent='خطأ: '+(err.message||'حاول مجدداً')
+    errEl.classList.add('show')
+    btn.disabled=false;btn.textContent='حفظ كلمة المرور الجديدة'
+  }
+}
+
+/* ════ استقبال الـ token من Supabase ════
+   Supabase يضيف fragment: #access_token=...&type=signup|recovery
+   نحوله يدوياً لـ session ─── */
+async function init(){
+  /* 1) استخرج الـ hash params */
+  const hash=window.location.hash.substring(1)
+  const params=new URLSearchParams(hash)
+  const accessToken=params.get('access_token')
+  const refreshToken=params.get('refresh_token')
+  const type=params.get('type')   /* signup | recovery */
+
+  /* 2) إذا في query param type من الـ forgotPw */
+  const qType=new URLSearchParams(window.location.search).get('type')
+
+  if(!accessToken){
+    /* لا يوجد token — عرض الخطأ */
+    document.getElementById('errorMsg').textContent='لا يوجد رابط تأكيد صالح. تأكد من فتح الرابط من بريدك مباشرة.'
+    show('errorState')
+    return
+  }
+
+  try{
+    /* 3) نعيد بناء الـ session */
+    const {data,error}=await sb.auth.setSession({
+      access_token:accessToken,
+      refresh_token:refreshToken||''
+    })
+    if(error)throw error
+
+    const finalType=type||qType||'signup'
+
+    if(finalType==='recovery'){
+      /* إعادة تعيين كلمة المرور */
+      show('resetState')
+    } else {
+      /* تأكيد الحساب (signup / email_change) */
+      show('successState')
+    }
+
+  }catch(err){
+    document.getElementById('errorMsg').textContent=
+      err.message?.includes('expired')
+        ?'انتهت صلاحية الرابط — اطلب رابطاً جديداً من صفحة تسجيل الدخول.'
+        :'الرابط غير صالح أو مستخدم مسبقاً.'
+    show('errorState')
+  }
+}
+
+init()
+</script>
+</body>
+</html>

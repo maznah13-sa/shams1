@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – الاستفسارات</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    /* إخفاء الأزرار الطافية في صفحة الاستفسارات */
+    .inquiries-floating-btn,
+    .chat-bubble { display: none !important; }
+
+    .breadcrumb-bar {
+      padding: 104px 24px 0;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      background: #fff;
+      border-radius: 50px;
+      padding: 10px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      width: fit-content;
+    }
+    .breadcrumb a {
+      color: #FFB800;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: opacity .2s;
+      white-space: nowrap;
+    }
+    .breadcrumb a:hover { opacity: 0.7; }
+    .breadcrumb-sep { color: #ccc; font-size: 0.8rem; }
+    .breadcrumb-current { color: #888; font-size: 0.88rem; font-weight: 700; white-space: nowrap; }
+
+    .inq-header { padding: 28px 24px 44px; text-align: center; }
+
+    /* success */
+    .success-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 36px 16px;
+    }
+    .success-icon {
+      width: 86px; height: 86px;
+      background: linear-gradient(135deg,#FFB800,#FF6B35);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 24px rgba(255,184,0,.3);
+      animation: popIn .45s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    .success-title {
+      font-size: 1.65rem; font-weight: 900; margin-bottom: 10px;
+      background: linear-gradient(135deg,#FFB800,#FF6B35);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .success-sub { color: #666; font-size: .97rem; line-height: 1.75; margin-bottom: 28px; }
+    .success-actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+    .btn-outline {
+      padding: 12px 26px; border: 2px solid #FFB800; border-radius: 50px;
+      background: transparent; color: #FFB800; font-family: inherit;
+      font-size: .92rem; font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .btn-outline:hover { background: #FFF8E1; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a class="logo" href="index.html">
+        <img src="shamsai.png" alt="شعار شمس" class="logo-img">
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html">الرئيسية</a></li>
+        <li><a href="index.html#about-section">نظرة عامة</a></li>
+        <li><a href="pricing.html">الاشتراكات</a></li>
+        <li><a href="roof.html">الحاسبة </a></li>
+      </ul>
+      <div class="nav-auth-btns">
+        <button class="nav-login-btn" onclick="location.href='login.html'">تسجيل الدخول</button>
+        <button class="nav-cta-btn" id="openChatBtn">💬 المساعد الذكي</button>
+      </div>
+      <button class="hamburger" id="hamburger">☰</button>
+    </div>
+  </nav>
+
+  <!-- ══ BREADCRUMB ══ -->
+  <div class="breadcrumb-bar">
+    <nav class="breadcrumb" aria-label="مسار التنقل">
+      <a href="index.html">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        الرئيسية
+      </a>
+      <span class="breadcrumb-sep">‹</span>
+      <a href="roof.html">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 12 2 21 11"/><path d="M5 11v8a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-8"/></svg>
+        الحاسبة 
+      </a>
+      <span class="breadcrumb-sep">‹</span>
+      <a href="monitor.html">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        المراقب الحي
+      </a>
+      <span class="breadcrumb-sep">‹</span>
+      <span class="breadcrumb-current">الاستفسارات</span>
+    </nav>
+  </div>
+
+  <!-- HEADER -->
+  <div class="inq-header">
+    <div class="section-label">الاستفسارات</div>
+    <h1 class="section-title">كيف نقدر نساعدك؟</h1>
+    <p class="section-sub">اكتب استفسارك وسيتواصل معك فريق شمس في أقرب وقت ممكن</p>
+  </div>
+
+  <!-- CARD -->
+  <section style="padding: 0 20px 80px;">
+    <div style="max-width:700px; margin:auto; background:white; padding:40px; border-radius:30px; box-shadow:0 15px 40px rgba(0,0,0,0.08);">
+
+      <div id="inqError" style="display:none; background:#fff0f0; border:1px solid #ffcccc; border-radius:12px; padding:12px 16px; margin-bottom:20px; color:#c0392b; font-size:0.9rem;"></div>
+
+      <!-- شاشة النجاح -->
+      <div id="inqSuccess" class="success-screen">
+        <div class="success-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h3 class="success-title">تم إرسال استفسارك!</h3>
+        <p class="success-sub">
+          شكراً لتواصلك مع فريق شمس ☀️<br>
+          سنراجع استفسارك ونتواصل معك على بريدك الإلكتروني في أقرب وقت ممكن
+        </p>
+        <div class="success-actions">
+          <button class="nav-cta-btn" onclick="location.href='index.html'">العودة للرئيسية</button>
+          <button class="btn-outline" onclick="resetForm()">إرسال استفسار آخر</button>
+        </div>
+      </div>
+
+      <!-- الفورم -->
+      <div id="inqForm">
+        <div style="margin-bottom:20px;">
+          <label style="display:block; margin-bottom:8px; font-weight:700;">الاسم الكامل</label>
+          <input id="inqName" type="text" placeholder="اكتب اسمك"
+            style="width:100%; padding:14px; border:1.5px solid #e5e5e5; border-radius:15px; font-size:16px; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .2s;"
+            onfocus="this.style.borderColor='#FFB800'" onblur="this.style.borderColor='#e5e5e5'">
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block; margin-bottom:8px; font-weight:700;">البريد الإلكتروني</label>
+          <input id="inqEmail" type="email" placeholder="example@email.com"
+            style="width:100%; padding:14px; border:1.5px solid #e5e5e5; border-radius:15px; font-size:16px; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .2s;"
+            onfocus="this.style.borderColor='#FFB800'" onblur="this.style.borderColor='#e5e5e5'">
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block; margin-bottom:8px; font-weight:700;">نوع الاستفسار</label>
+          <select id="inqType"
+            style="width:100%; padding:14px; border:1.5px solid #e5e5e5; border-radius:15px; font-size:16px; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .2s;"
+            onfocus="this.style.borderColor='#FFB800'" onblur="this.style.borderColor='#e5e5e5'">
+            <option value="general">استفسار عام</option>
+            <option value="subscription">اشتراك</option>
+            <option value="technical">دعم فني</option>
+            <option value="payment">مشاكل الدفع</option>
+            <option value="suggestion">اقتراح</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:25px;">
+          <label style="display:block; margin-bottom:8px; font-weight:700;">اكتب استفسارك</label>
+          <textarea id="inqMessage" rows="6" placeholder="اكتب تفاصيل الاستفسار هنا..."
+            style="width:100%; padding:14px; border:1.5px solid #e5e5e5; border-radius:15px; font-size:16px; font-family:inherit; resize:none; outline:none; box-sizing:border-box; transition:border-color .2s;"
+            onfocus="this.style.borderColor='#FFB800'" onblur="this.style.borderColor='#e5e5e5'"></textarea>
+        </div>
+
+        <button id="inqBtn" onclick="submitInquiry()"
+          class="nav-cta-btn" style="width:100%; padding:16px; font-size:18px; cursor:pointer;">
+          إرسال الاستفسار
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+  <script>
+  async function submitInquiry() {
+    const name    = document.getElementById('inqName').value.trim();
+    const email   = document.getElementById('inqEmail').value.trim();
+    const type    = document.getElementById('inqType').value;
+    const message = document.getElementById('inqMessage').value.trim();
+    const errEl   = document.getElementById('inqError');
+
+    errEl.style.display = 'none';
+    if (!name)    { showInqError('الرجاء إدخال الاسم الكامل'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+                  { showInqError('الرجاء إدخال بريد إلكتروني صحيح'); return; }
+    if (!message) { showInqError('الرجاء كتابة تفاصيل الاستفسار'); return; }
+
+    const btn = document.getElementById('inqBtn');
+    btn.textContent = '⏳ جارٍ الإرسال...';
+    btn.disabled = true;
+
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+
+      const { error } = await sb.from('inquiries').insert({
+        user_id:      session?.user?.id || null,
+        full_name:    name,
+        email:        email,
+        inquiry_type: type,
+        message:      message,
+        status:       'new'
+      });
+
+      if (error) throw error;
+
+      document.getElementById('inqForm').style.display    = 'none';
+      document.getElementById('inqSuccess').style.display = 'flex';
+
+    } catch (err) {
+      showInqError('حدث خطأ أثناء الإرسال، حاول مجدداً');
+      btn.textContent = 'إرسال الاستفسار';
+      btn.disabled = false;
+    }
+  }
+
+  function showInqError(msg) {
+    const el = document.getElementById('inqError');
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function resetForm() {
+    ['inqName','inqEmail','inqMessage'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('inqType').value = 'general';
+    document.getElementById('inqError').style.display = 'none';
+    document.getElementById('inqBtn').textContent = 'إرسال الاستفسار';
+    document.getElementById('inqBtn').disabled = false;
+    document.getElementById('inqSuccess').style.display = 'none';
+    document.getElementById('inqForm').style.display = 'block';
+  }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – تحديد شكل السطح</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    body { background: var(--gray-50); }
+    .roof-page { padding: 100px 24px 80px; }
+    .roof-layout { display: grid; grid-template-columns: 1fr 340px; gap: 28px; max-width: 1140px; margin: 0 auto; align-items: start; direction: ltr; }
+    .roof-main { display: flex; flex-direction: column; gap: 20px; }
+    .roof-sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 90px; }
+    .sidebar-card, .canvas-card, .calc-side-card { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--gray-100); box-shadow: var(--shadow-card); }
+    .sidebar-card { padding: 24px; }
+    .sidebar-card h3, .calc-side-card h3 { font-size: 1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .shape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .shape-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: var(--radius-md); border: 2px solid var(--gray-200); background: var(--white); cursor: pointer; transition: var(--transition); }
+    .shape-btn:hover { border-color: var(--sun-yellow); background: rgba(255,184,0,0.04); }
+    .shape-btn.active { border-color: var(--sun-yellow); background: rgba(255,184,0,0.08); box-shadow: 0 0 0 3px rgba(255,184,0,0.15); }
+    .shape-svg { width: 52px; height: 40px; }
+    .shape-label { font-size: 0.78rem; font-weight: 600; color: var(--gray-700); text-align: center; }
+    .dim-field { margin-bottom: 14px; }
+    .dim-field label { display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+    .dim-field label span { color: var(--sun-gold); font-weight: 700; }
+    .dim-slider { width: 100%; height: 5px; border-radius: 50px; background: var(--gray-200); outline: none; cursor: pointer; -webkit-appearance: none; }
+    .dim-slider:disabled { opacity: 0.45; cursor: not-allowed; }
+    .dim-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gradient-sun); box-shadow: var(--shadow-sun); cursor: pointer; }
+    .dim-input { width: 100%; padding: 11px 12px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.9rem; text-align: center; outline: none; transition: var(--transition); background: var(--white); }
+    .dim-input:focus { border-color: var(--sun-yellow); box-shadow: 0 0 0 3px rgba(255,184,0,0.12); }
+    .area-result { background: var(--gradient-sun); border-radius: var(--radius-md); padding: 18px 20px; text-align: center; }
+    .area-result .area-val { font-size: 2.4rem; font-weight: 800; color: var(--white); line-height: 1; }
+    .area-result .area-label { font-size: 0.82rem; color: rgba(255,255,255,0.85); margin-top: 4px; }
+    .area-result .usable-pct { font-size: 0.78rem; color: rgba(255,255,255,0.75); margin-top: 2px; }
+    .panels-est { display: flex; justify-content: space-between; background: var(--gray-50); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 12px; font-size: 0.82rem; }
+    .panels-est span { color: var(--gray-600); }
+    .panels-est strong { color: var(--gray-900); }
+    .calc-side-card { padding: 28px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+    .input-wrapper { position: relative; }
+    .input-wrapper input, .input-wrapper select { width: 100%; padding: 14px 42px 14px 14px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-md); font-family: var(--font-body); font-size: 0.95rem; outline: none; transition: var(--transition); background: var(--white); }
+    .input-wrapper input:focus, .input-wrapper select:focus { border-color: var(--sun-yellow); box-shadow: 0 0 0 3px rgba(255,184,0,0.12); }
+    .input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; }
+    .hint { display: block; margin-top: 8px; color: var(--gray-500); font-size: 0.8rem; }
+    .roof-calc-results { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .result-box { background: var(--gray-50); border: 1px solid var(--gray-100); border-radius: var(--radius-md); padding: 14px; }
+    .result-box small { display: block; color: var(--gray-500); margin-bottom: 6px; font-size: .78rem; }
+    .result-box strong { color: var(--gray-900); font-size: 1rem; font-weight: 700; }
+    .canvas-card { overflow: hidden; }
+    .canvas-toolbar { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--gray-100); background: var(--gray-50); flex-wrap: wrap; }
+    .canvas-toolbar h3 { font-size: 0.95rem; font-weight: 700; color: var(--gray-900); margin-left: auto; }
+    .toolbar-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--gray-200); background: var(--white); font-family: var(--font-body); font-size: 0.82rem; font-weight: 600; color: var(--gray-600); cursor: pointer; transition: var(--transition); }
+    .toolbar-btn:hover { border-color: var(--gray-400); background: var(--gray-50); }
+    .toolbar-btn.active { border-color: var(--sun-yellow); background: rgba(255,184,0,0.08); color: var(--sun-gold); }
+    .canvas-wrap { position: relative; background: #f0f7ff; }
+    #roofCanvas { display: block; width: 100%; cursor: crosshair; }
+    .canvas-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(74,184,232,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(74,184,232,0.08) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; }
+    .canvas-instructions { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(26,31,48,0.75); color: white; font-size: 0.80rem; padding: 7px 16px; border-radius: 50px; pointer-events: none; white-space: nowrap; transition: var(--transition); }
+    .canvas-instructions.hide { opacity: 0; }
+    .scale-indicator { position: absolute; bottom: 12px; right: 16px; background: rgba(255,255,255,0.92); border: 1px solid var(--gray-200); border-radius: 6px; padding: 6px 12px; font-size: 0.75rem; color: var(--gray-600); }
+    .panel-overlay-wrap { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--gray-100); background: var(--gray-50); font-size: 0.85rem; color: var(--gray-600); }
+    .toggle-sm { width: 36px; height: 20px; background: var(--gray-300); border-radius: 50px; position: relative; cursor: pointer; transition: var(--transition); flex-shrink: 0; }
+    .toggle-sm.on { background: var(--gradient-sun); }
+    .toggle-sm::after { content: ''; width: 14px; height: 14px; background: white; border-radius: 50%; position: absolute; top: 3px; right: 3px; transition: var(--transition); box-shadow: var(--shadow-sm); }
+    .toggle-sm.on::after { right: auto; left: 3px; }
+    .send-calc-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; font-size: 0.95rem; font-weight: 700; border-radius: var(--radius-md); background: var(--gradient-sun); color: var(--white); border: none; cursor: pointer; transition: var(--transition); box-shadow: var(--shadow-sun); font-family: var(--font-body); }
+    .send-calc-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 32px rgba(255,184,0,0.45); }
+    .send-calc-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .obstacle-list { display: flex; flex-direction: column; gap: 8px; }
+    .obstacle-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--gray-50); border-radius: var(--radius-sm); border: 1px solid var(--gray-100); font-size: 0.82rem; color: var(--gray-700); }
+    .obstacle-remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1rem; padding: 2px 6px; border-radius: 4px; transition: var(--transition); }
+    .obstacle-remove:hover { background: rgba(231,76,60,0.10); }
+    @media (max-width: 900px) { .roof-layout { grid-template-columns: 1fr; } .roof-sidebar { position: static; } }
+    @media (max-width: 640px) { .roof-calc-results { grid-template-columns: 1fr; } }
+    @media (max-width: 480px) { .shape-grid { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="logo" href="index.html"><img src="shams.png" alt="شعار شمس" class="logo-img"></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html" data-page="index.html">الرئيسية</a></li>
+      <li><a href="index.html#about-section">نظرة عامة</a></li>
+      <li><a href="pricing.html" data-page="pricing.html">الاشتراكات</a></li>
+      <li><a href="roof.html" data-page="roof.html">الحاسبة </a></li>
+    </ul>
+    <div class="nav-auth-btns" id="navAuthBtns">
+      <button class="nav-login-btn" onclick="location.href='login.html'">تسجيل الدخول</button>
+      <button class="nav-cta-btn" id="openChatBtn">💬 المساعد الذكي</button>
+    </div>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<div class="roof-page">
+  <div style="max-width:1140px;margin:0 auto 24px;padding:0">
+    <div class="section-label">الحاسبة </div>
+    <h1 class="section-title" style="margin-bottom:6px">حدّد شكل سطحك</h1>
+    <p style="color:var(--gray-500);font-size:0.95rem">اختر شكل جاهز أو ارسم السطح يدوياً — سيتم حساب المساحة والألواح تلقائياً</p>
+  </div>
+
+  <div class="roof-layout">
+    <div class="roof-main">
+      <div class="calc-side-card" id="roofCalculator">
+        <h3>☀️ حاسبة الطاقة الشمسية</h3>
+        <div class="form-group">
+          <label>مساحة السطح (م²)</label>
+          <div class="input-wrapper"><input type="number" id="roofArea" placeholder="سيتم تعبئتها تلقائياً" min="1" /><span class="input-icon">📐</span></div>
+        </div>
+        <div class="form-group">
+          <label>فاتورة الكهرباء الشهرية (ريال)</label>
+          <div class="input-wrapper"><input type="number" id="monthlyBill" placeholder="مثال: 500" min="1" /><span class="input-icon">💡</span></div>
+        </div>
+        <div class="form-group">
+          <label>المدينة</label>
+          <div class="input-wrapper">
+            <select id="citySelect"><option value="">-- اختر مدينتك --</option></select>
+            <span class="input-icon">📍</span>
+          </div>
+          <small id="cityInfo" class="hint"></small>
+        </div>
+        <button class="send-calc-btn" id="calculateBtn" type="button">احسب الآن ✦</button>
+        <div class="roof-calc-results" id="resultsContent" style="display:none;">
+          <div class="result-box"><small>الاستهلاك الشهري</small><strong id="resConsumption">—</strong></div>
+          <div class="result-box"><small>حجم النظام</small><strong id="resSystemSize">—</strong></div>
+          <div class="result-box"><small>عدد الألواح</small><strong id="resPanels">—</strong></div>
+          <div class="result-box"><small>كفاية السطح</small><strong id="roofStatus">—</strong></div>
+          <div class="result-box"><small>تكلفة التركيب</small><strong id="resCost">—</strong></div>
+          <div class="result-box"><small>فترة الاسترداد</small><strong id="resPayback">—</strong></div>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <div class="canvas-toolbar">
+          <button class="toolbar-btn" onclick="clearCanvas()">🗑 مسح</button>
+          <button class="toolbar-btn" onclick="undoLast()">↩ تراجع</button>
+          <button class="toolbar-btn active" id="btnOrientation" onclick="toggleOrientation()">☀ مواجهة الجنوب</button>
+          <div style="margin-right:auto;font-size:0.82rem;color:var(--gray-500)">المقياس: <strong style="color:var(--gray-900)">1 مربع = 1م²</strong></div>
+          <h3>عارض السطح</h3>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="roofCanvas"></canvas>
+          <div class="canvas-grid"></div>
+          <div class="canvas-instructions" id="canvasInstructions">انقر لإضافة نقطة — أغلق الشكل بالنقر على النقطة الأولى</div>
+          <div class="scale-indicator">🔲 كل مربع = 1م × 1م</div>
+        </div>
+        <div class="panel-overlay-wrap">
+          <div class="toggle-sm" id="panelToggle" onclick="togglePanelOverlay()"></div>
+          <span>عرض توزيع الألواح الشمسية المقترح</span>
+          <span style="margin-right:auto;font-size:0.78rem;color:var(--gray-400)" id="panelCountInfo"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="roof-sidebar">
+      <div class="sidebar-card">
+        <h3>🏠 اختر شكل السطح</h3>
+        <div class="shape-grid">
+          <button class="shape-btn active" onclick="selectShape('rect')" id="shape-rect" type="button"><svg class="shape-svg" viewBox="0 0 52 40"><rect x="4" y="6" width="44" height="28" rx="2" fill="rgba(255,184,0,0.2)" stroke="#FF8C00" stroke-width="2.5"/></svg><span class="shape-label">مستطيل</span></button>
+          <button class="shape-btn" onclick="selectShape('lshape')" id="shape-lshape" type="button"><svg class="shape-svg" viewBox="0 0 52 40"><polygon points="4,6 30,6 30,22 48,22 48,34 4,34" fill="rgba(74,184,232,0.15)" stroke="#4AB8E8" stroke-width="2.5" stroke-linejoin="round"/></svg><span class="shape-label">شكل L</span></button>
+          <button class="shape-btn" onclick="selectShape('tshape')" id="shape-tshape" type="button"><svg class="shape-svg" viewBox="0 0 52 40"><polygon points="4,6 48,6 48,18 32,18 32,34 20,34 20,18 4,18" fill="rgba(255,107,53,0.15)" stroke="#FF6B35" stroke-width="2.5" stroke-linejoin="round"/></svg><span class="shape-label">شكل T</span></button>
+          <button class="shape-btn" onclick="selectShape('triangle')" id="shape-triangle" type="button"><svg class="shape-svg" viewBox="0 0 52 40"><polygon points="26,4 48,36 4,36" fill="rgba(39,174,96,0.12)" stroke="#27AE60" stroke-width="2.5" stroke-linejoin="round"/></svg><span class="shape-label">مثلث</span></button>
+          <button class="shape-btn" onclick="selectShape('hexagon')" id="shape-hexagon" type="button"><svg class="shape-svg" viewBox="0 0 52 40"><polygon points="26,2 46,12 46,28 26,38 6,28 6,12" fill="rgba(142,36,170,0.10)" stroke="#8e24aa" stroke-width="2.5" stroke-linejoin="round"/></svg><span class="shape-label">سداسي</span></button>
+          <button class="shape-btn" onclick="selectShape('custom')" id="shape-custom" type="button"><svg class="shape-svg" viewBox="0 0 52 40"><path d="M8 20 L20 8 L36 10 L46 24 L38 34 L12 32 Z" fill="rgba(255,184,0,0.10)" stroke="#FFB800" stroke-width="2" stroke-dasharray="4,3" stroke-linejoin="round"/><circle cx="8" cy="20" r="2.5" fill="#FF8C00"/><circle cx="20" cy="8" r="2.5" fill="#FF8C00"/><circle cx="36" cy="10" r="2.5" fill="#FF8C00"/><circle cx="46" cy="24" r="2.5" fill="#FF8C00"/></svg><span class="shape-label">رسم حر</span></button>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>📐 الأبعاد</h3>
+        <div class="dim-field">
+          <label>عدد الأضلاع <span>* مطلوب</span></label>
+          <input type="number" class="dim-input" id="sidesInput" min="3" value="4" placeholder="أدخل عدد الأضلاع" oninput="updateSides(this.value)" />
+        </div>
+        <div class="dim-field">
+          <label>العرض <span id="widthVal">10</span> م</label>
+          <input type="range" class="dim-slider" id="widthSlider" min="3" max="50" value="10" oninput="updateDimension('width', this.value)" />
+        </div>
+        <div class="dim-field" id="lengthField">
+          <label>الطول <span id="lengthVal">12</span> م</label>
+          <input type="range" class="dim-slider" id="lengthSlider" min="3" max="50" value="12" oninput="updateDimension('length', this.value)" />
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-100)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <label style="font-size:0.85rem;font-weight:700;color:var(--gray-700)">⚠️ العوائق (خزان، مكيف...)</label>
+            <button onclick="addObstacle()" type="button" style="font-size:0.78rem;color:var(--sky-blue);background:none;border:none;cursor:pointer;font-weight:600">+ إضافة</button>
+          </div>
+          <div class="obstacle-list" id="obstacleList">
+            <div style="font-size:0.8rem;color:var(--gray-400);text-align:center;padding:8px">لا توجد عوائق مضافة</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>📊 النتائج</h3>
+        <div class="area-result">
+          <div class="area-val"><span id="totalArea">120</span> م²</div>
+          <div class="area-label">المساحة الكلية للسطح</div>
+          <div class="usable-pct">المساحة الصالحة (75%): <strong style="color:white"><span id="usableArea">90</span> م²</strong></div>
+        </div>
+        <div class="panels-est">
+          <span>ألواح محتملة:</span>
+          <strong><span id="estPanels">45</span> لوح (~<span id="estKw">18</span> كيلوواط)</strong>
+        </div>
+        <button class="send-calc-btn" id="sendCalcBtn" onclick="sendToCalculator()" type="button">أرسل المساحة للحاسبة ←</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="main-footer">
+  <div class="container">
+    <div class="footer-logo">
+      <img src="shams.png" alt="شعار شمس" class="logo-img">
+    </div>
+    <nav class="footer-nav">
+      <a href="index.html">الرئيسية</a>
+      <a href="index.html#features">المميزات</a>
+      <a href="index.html#about-section">نظرة عامة</a>
+      <a href="pricing.html">الاشتراكات</a>
+      <a href="roof.html">الحاسبة</a>
+      <li><a href="monitor.html"><span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#FF8C00;display:inline-block;animation:sunPulse 3s ease-in-out infinite;"></span>المراقب الحي</span></a></li>
+      <a href="login.html">تسجيل الدخول</a>
+    </nav>
+    <div class="footer-divider"></div>
+    <p>منصة حاسبة الطاقة الشمسية للمملكة العربية السعودية</p>
+    <p class="footer-copy">مشروع تخرج – طلاب البرمجة 2026 &nbsp;|&nbsp; © 2026 شمس. جميع الحقوق محفوظة</p>
+  </div>
+</footer>
+
+<div class="chat-widget" id="chatWidget">
+  <div class="chat-header"><div class="chat-header-info"><img src="shams.png" alt="شمس" class="chat-avatar-logo"><div><strong>مساعد شمس</strong><span class="chat-status">متصل الآن</span></div></div><button class="chat-close" id="closeChatBtn">✕</button></div>
+  <div class="chat-messages" id="chatMessages"><div class="msg bot"><div class="msg-bubble">مرحباً! يمكنني مساعدتك في تحديد أفضل شكل وحجم للسطح ☀</div></div></div>
+  <div class="chat-input-area"><input type="text" id="chatInput" placeholder="اسأل عن أشكال الأسطح..." /><button id="sendMsgBtn">➤</button></div>
+</div>
+<button class="chat-bubble" id="chatBubble"><img src="shamsai.png" alt="شمس" style="width:30px;height:30px;border-radius:50%;object-fit:cover;"></button>
+
+<script src="app.js"></script>
+<script>
+// ── تحقق من الجلسة وعدّل الناف بار ──────────────────────
+// ملاحظة: CITY_DATA وتحميل المدن يتم في app.js — لا نُعيد إعلانهما هنا
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  const btns = document.getElementById('navAuthBtns');
+
+  if (session && btns) {
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('full_name')
+      .eq('id', session.user.id)
+      .single();
+
+    const name = profile?.full_name || session.user.email;
+    btns.innerHTML = `
+      <a href="profile.html" class="nav-user-name" style="text-decoration:none;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${name}</a>
+      <button onclick="doLogout()" style="background:none;border:1.5px solid var(--gray-200);color:var(--gray-600);font-family:var(--font-body);font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:50px;cursor:pointer;">تسجيل الخروج</button>
+      <button class="nav-cta-btn" id="openChatBtn">💬 المساعد الذكي</button>
+    `;
+    document.getElementById('openChatBtn')?.addEventListener('click', toggleChat);
+  }
+})();
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.href = 'login.html';
+}
+
+// ── Canvas ────────────────────────────────────────────────
+const canvas = document.getElementById('roofCanvas');
+const ctx = canvas.getContext('2d');
+let currentShape='rect', width=10, length=12, sidesCount=4;
+let showPanels=false, freePoints=[], isDrawing=false, obstacles=[];
+const SCALE=40, PAD=48;
+
+function resizeCanvas() { const w=canvas.parentElement.offsetWidth; canvas.width=w; canvas.height=Math.max(400,w*0.55); redraw(); }
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', ()=>{ updateSides(4); resizeCanvas(); });
+
+function getShapePoints(type,W,L,cw,ch) {
+  const cx=cw/2,cy=ch/2,hw=(W*SCALE)/2,hl=(L*SCALE)/2;
+  switch(type){
+    case 'rect': return [[cx-hw,cy-hl],[cx+hw,cy-hl],[cx+hw,cy+hl],[cx-hw,cy+hl]];
+    case 'lshape':{ const pw=hw,ph=hl; return [[cx-pw,cy-ph],[cx+pw*0.4,cy-ph],[cx+pw*0.4,cy],[cx+pw,cy],[cx+pw,cy+ph],[cx-pw,cy+ph]]; }
+    case 'tshape':{ const pw=hw,ph=hl; return [[cx-pw,cy-ph],[cx+pw,cy-ph],[cx+pw,cy-ph*0.2],[cx+pw*0.4,cy-ph*0.2],[cx+pw*0.4,cy+ph],[cx-pw*0.4,cy+ph],[cx-pw*0.4,cy-ph*0.2],[cx-pw,cy-ph*0.2]]; }
+    case 'triangle': return [[cx,cy-hl],[cx+hw,cy+hl],[cx-hw,cy+hl]];
+    case 'hexagon':{ const r=Math.min(hw,hl); return Array.from({length:6},(_,i)=>{ const a=Math.PI/180*(60*i-30); return [cx+r*Math.cos(a),cy+r*Math.sin(a)]; }); }
+    default: return freePoints.length>=3?freePoints:[[cx-hw,cy-hl],[cx+hw,cy-hl],[cx+hw,cy+hl],[cx-hw,cy+hl]];
+  }
+}
+
+function polygonArea(pts){ let a=0; for(let i=0;i<pts.length;i++){const j=(i+1)%pts.length;a+=pts[i][0]*pts[j][1];a-=pts[j][0]*pts[i][1];} return Math.abs(a/2); }
+function drawShape(pts,fill,stroke,lw=2){ if(pts.length<2)return; ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke(); }
+function pointInPolygon(pt,poly){ let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){if(((poly[i][1]>pt[1])!==(poly[j][1]>pt[1]))&&(pt[0]<(poly[j][0]-poly[i][0])*(pt[1]-poly[i][1])/(poly[j][1]-poly[i][1])+poly[i][0]))inside=!inside;}return inside; }
+
+function drawPanelGrid(pts){ const cw=canvas.width,ch=canvas.height,pW=SCALE*1.0,pH=SCALE*0.5;let count=0;for(let y=PAD;y<ch-PAD-pH;y+=pH+3){for(let x=PAD;x<cw-PAD-pW;x+=pW+3){const cx2=x+pW/2,cy2=y+pH/2;if(pointInPolygon([cx2,cy2],pts)){ctx.fillStyle='rgba(74,184,232,0.55)';ctx.strokeStyle='rgba(26,97,130,0.7)';ctx.lineWidth=1;ctx.fillRect(x,y,pW,pH);ctx.strokeRect(x,y,pW,pH);ctx.beginPath();ctx.moveTo(x+pW/2,y);ctx.lineTo(x+pW/2,y+pH);ctx.strokeStyle='rgba(26,97,130,0.4)';ctx.stroke();count++;}}}document.getElementById('panelCountInfo').textContent=`${count} لوح في المنطقة الصالحة`;return count; }
+
+function updateStats(pts){ const areaM2=Math.round(polygonArea(pts)/(SCALE*SCALE));const usable=Math.max(0,Math.round(areaM2*0.75)-obstacles.reduce((s,o)=>s+o.area,0));const panels=Math.round(usable/2),kw=Math.round(panels*0.4);document.getElementById('totalArea').textContent=areaM2;document.getElementById('usableArea').textContent=usable;document.getElementById('estPanels').textContent=panels;document.getElementById('estKw').textContent=kw; }
+
+function redraw(){ const cw=canvas.width,ch=canvas.height;ctx.clearRect(0,0,cw,ch);const pts=getShapePoints(currentShape,width,length,cw,ch);ctx.save();ctx.shadowColor='rgba(255,140,0,0.18)';ctx.shadowBlur=24;drawShape(pts,'rgba(255,184,0,0.12)','rgba(255,140,0,0.6)',2.5);ctx.restore();drawShape(pts,'rgba(255,220,100,0.18)','#FF8C00',2.5);if(showPanels)drawPanelGrid(pts);pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],5,0,Math.PI*2);ctx.fillStyle='#FF8C00';ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=1.5;ctx.stroke();});if(currentShape!=='custom'||freePoints.length>=2){ctx.font='700 13px Tajawal, Apple Color Emoji, Segoe UI Emoji, sans-serif';ctx.fillStyle='#404B63';ctx.textAlign='center';const cx=cw/2,cy=ch/2,hw=(width*SCALE)/2,hl=(length*SCALE)/2;if(['rect','lshape','tshape'].includes(currentShape)){ctx.fillText(`${width} م`,cx,cy+hl+28);ctx.save();ctx.translate(cx-hw-28,cy);ctx.rotate(-Math.PI/2);ctx.fillText(`${length} م`,0,0);ctx.restore();}}if(currentShape==='custom'){freePoints.forEach((p,i)=>{ctx.beginPath();ctx.arc(p[0],p[1],i===0?7:5,0,Math.PI*2);ctx.fillStyle=i===0?'#FF6B35':'#FF8C00';ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=1.5;ctx.stroke();});if(freePoints.length>1){ctx.beginPath();ctx.moveTo(freePoints[0][0],freePoints[0][1]);freePoints.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.strokeStyle='#FF8C00';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);}}updateStats(pts); }
+
+function selectShape(shape){ currentShape=shape;document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`shape-${shape}`).classList.add('active');const instr=document.getElementById('canvasInstructions');if(shape==='custom'){freePoints=[];isDrawing=true;canvas.style.cursor='crosshair';instr.classList.remove('hide');instr.textContent='انقر لإضافة نقطة — أغلق الشكل بالنقر على النقطة الأولى';}else{isDrawing=false;canvas.style.cursor='default';instr.classList.add('hide');}document.getElementById('lengthField').style.display=(shape==='triangle'||shape==='hexagon')?'none':'block';redraw(); }
+
+canvas.addEventListener('click',(e)=>{ if(currentShape!=='custom'||!isDrawing)return;const rect=canvas.getBoundingClientRect();const x=e.clientX-rect.left,y=e.clientY-rect.top;if(freePoints.length>=3){const fp=freePoints[0];if(Math.hypot(x-fp[0],y-fp[1])<14){isDrawing=false;document.getElementById('canvasInstructions').classList.add('hide');canvas.style.cursor='default';redraw();return;}}freePoints.push([x,y]);redraw(); });
+
+function updateSides(val){ sidesCount=parseInt(val)||0;const ws=document.getElementById('widthSlider'),ls=document.getElementById('lengthSlider');ws.disabled=ls.disabled=sidesCount<3; }
+function updateDimension(dim,val){ if(!sidesCount||sidesCount<3){alert('الرجاء إدخال عدد الأضلاع أولاً');document.getElementById('sidesInput').focus();return;}if(dim==='width'){width=+val;document.getElementById('widthVal').textContent=val;}else{length=+val;document.getElementById('lengthVal').textContent=val;}if(currentShape!=='custom')redraw(); }
+function toggleOrientation(){ const btn=document.getElementById('btnOrientation');btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'☀ مواجهة الجنوب':'↕ اتجاه مخصص'; }
+function togglePanelOverlay(){ showPanels=!showPanels;document.getElementById('panelToggle').classList.toggle('on',showPanels);redraw(); }
+function clearCanvas(){ freePoints=[];currentShape='rect';document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));document.getElementById('shape-rect').classList.add('active');isDrawing=false;document.getElementById('canvasInstructions').classList.add('hide');redraw(); }
+function undoLast(){ if(currentShape==='custom'&&freePoints.length>0){freePoints.pop();redraw();} }
+
+let obstacleCount=0;
+function addObstacle(){ obstacleCount++;const list=document.getElementById('obstacleList');if(obstacleCount===1)list.innerHTML='';const names=['خزان مياه','مكيف هواء','غرفة سطح','هوائي','مدخنة'];const name=names[(obstacleCount-1)%names.length];const area=Math.floor(2+Math.random()*4);list.innerHTML+=`<div class="obstacle-item" id="obs-${obstacleCount}"><span>${name} (${area} م²)</span><button class="obstacle-remove" onclick="removeObstacle(${obstacleCount})">✕</button></div>`;obstacles.push({id:obstacleCount,area});redraw(); }
+function removeObstacle(id){ document.getElementById(`obs-${id}`)?.remove();obstacles=obstacles.filter(o=>o.id!==id);if(obstacles.length===0)document.getElementById('obstacleList').innerHTML='<div style="font-size:0.8rem;color:var(--gray-400);text-align:center;padding:8px">لا توجد عوائق مضافة</div>';redraw(); }
+
+function sendToCalculator(){ if(!sidesCount||sidesCount<3){alert('الرجاء إدخال عدد الأضلاع أولاً');document.getElementById('sidesInput').focus();return;}const area=document.getElementById('usableArea').textContent;const roofAreaInput=document.getElementById('roofArea');if(roofAreaInput)roofAreaInput.value=area;document.getElementById('roofCalculator')?.scrollIntoView({behavior:'smooth',block:'start'});const btn=document.getElementById('sendCalcBtn');btn.textContent='✅ تم إرسال المساحة';btn.disabled=true;setTimeout(()=>{btn.textContent='أرسل المساحة للحاسبة ←';btn.disabled=false;},1500); }
+
+// ── الحاسبة: يتولى app.js زر calculateBtn — لا نُضيف listener مكرر هنا
+</script>
+
+</body>
+</html>

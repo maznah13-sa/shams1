@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – الملف الشخصي</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    /* ══════════════════════════════════════════
+       صفحة البروفايل — Profile Page
+       ══════════════════════════════════════════ */
+
+    body {
+      background: linear-gradient(160deg, #FFFDF5 0%, #FFF8E1 50%, #FFF3C0 100%);
+      min-height: 100vh;
+    }
+
+    .profile-page {
+      padding: 100px 24px 80px;
+      min-height: 100vh;
+    }
+
+    .profile-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Page Header ── */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+
+    .profile-header-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--gray-600);
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 50px;
+      border: 1.5px solid var(--gray-200);
+      background: var(--white);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .profile-header-back:hover {
+      border-color: var(--sun-yellow);
+      color: var(--sun-gold);
+    }
+
+    .profile-header-title h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      line-height: 1.2;
+    }
+
+    .profile-header-title p {
+      font-size: 0.88rem;
+      color: var(--gray-400);
+      margin-top: 3px;
+    }
+
+    /* ── Layout Grid ── */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ── Sidebar Card ── */
+    .profile-sidebar {
+      position: sticky;
+      top: 90px;
+    }
+
+    .profile-id-card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .profile-id-card-top {
+      background: linear-gradient(135deg, #FFB800 0%, #FF8C00 60%, #FF6B35 100%);
+      padding: 32px 24px 48px;
+      text-align: center;
+      position: relative;
+    }
+
+    .profile-id-card-top::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: var(--white);
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    }
+
+    .profile-avatar-wrap {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+
+    .profile-avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      border: 3px solid rgba(255,255,255,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      color: white;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+
+    .profile-avatar svg {
+      width: 52px;
+      height: 52px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .profile-avatar-badge {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      width: 22px;
+      height: 22px;
+      background: var(--success);
+      border-radius: 50%;
+      border: 2px solid var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .profile-avatar-badge svg {
+      width: 10px;
+      height: 10px;
+      color: white;
+    }
+
+    .profile-id-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.3;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .profile-id-email {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.85);
+      margin-top: 4px;
+      word-break: break-all;
+    }
+
+    .profile-id-card-body {
+      padding: 20px 20px 24px;
+    }
+
+    .profile-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .profile-meta-item:last-child {
+      border-bottom: none;
+    }
+
+    .profile-meta-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(255,184,0,0.12), rgba(255,107,53,0.08));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .profile-meta-icon svg {
+      width: 16px;
+      height: 16px;
+      color: var(--sun-gold);
+    }
+
+    .profile-meta-label {
+      font-size: 0.72rem;
+      color: var(--gray-400);
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    .profile-meta-value {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      display: block;
+      word-break: break-all;
+    }
+
+    .profile-role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(135deg, rgba(255,184,0,0.12), rgba(255,107,53,0.08));
+      border: 1px solid rgba(255,184,0,0.3);
+      border-radius: 50px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--sun-gold);
+      margin-top: 12px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* ── Main Content ── */
+    .profile-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Edit Card ── */
+    .profile-edit-card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .profile-edit-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .profile-edit-card-header {
+      padding: 24px 28px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--gray-100);
+      padding-bottom: 18px;
+    }
+
+    .profile-edit-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .profile-edit-card-title .card-title-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255,184,0,0.15), rgba(255,107,53,0.10));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .profile-edit-card-title .card-title-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--sun-gold);
+    }
+
+    .profile-edit-card-title h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .profile-edit-card-title p {
+      font-size: 0.78rem;
+      color: var(--gray-400);
+      margin-top: 1px;
+    }
+
+    .profile-edit-card-body {
+      padding: 26px 28px;
+    }
+
+    /* ── Form Fields ── */
+    .profile-fields-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .profile-fields-grid .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .profile-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .profile-field label {
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .profile-field label svg {
+      width: 13px;
+      height: 13px;
+      color: var(--sun-gold);
+      opacity: 0.8;
+    }
+
+    .profile-input-wrap {
+      position: relative;
+    }
+
+    .profile-input {
+      width: 100%;
+      padding: 13px 44px 13px 14px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--gray-800);
+      background: var(--gray-50);
+      transition: var(--transition);
+      outline: none;
+      direction: rtl;
+    }
+
+    .profile-input:focus {
+      border-color: var(--sun-yellow);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(255,184,0,0.10);
+    }
+
+    .profile-input:disabled {
+      background: var(--gray-100);
+      color: var(--gray-400);
+      cursor: not-allowed;
+      border-color: var(--gray-100);
+    }
+
+    .profile-input.error {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(231,76,60,0.10);
+    }
+
+    .profile-field-icon {
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .profile-field-icon svg {
+      width: 16px;
+      height: 16px;
+      color: var(--gray-400);
+    }
+
+    .profile-field-hint {
+      font-size: 0.73rem;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+
+    .profile-field-err {
+      font-size: 0.74rem;
+      color: var(--danger);
+      display: none;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .profile-field-err.show {
+      display: flex;
+    }
+
+    /* ── Email Locked Badge ── */
+    .email-locked-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(74,184,232,0.08);
+      border: 1px solid rgba(74,184,232,0.25);
+      border-radius: 50px;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--sky-blue);
+    }
+
+    /* ── City Select ── */
+    .profile-select {
+      width: 100%;
+      padding: 13px 44px 13px 14px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--gray-800);
+      background: var(--gray-50);
+      transition: var(--transition);
+      outline: none;
+      appearance: none;
+      direction: rtl;
+      cursor: pointer;
+    }
+
+    .profile-select:focus {
+      border-color: var(--sun-yellow);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(255,184,0,0.10);
+    }
+
+    .select-chevron {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .select-chevron svg {
+      width: 14px;
+      height: 14px;
+      color: var(--gray-400);
+    }
+
+    /* ── Action Bar ── */
+    .profile-action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 2px solid var(--gray-100);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .profile-action-note {
+      font-size: 0.78rem;
+      color: var(--gray-400);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .profile-action-note svg {
+      width: 13px;
+      height: 13px;
+      color: var(--sun-gold);
+      flex-shrink: 0;
+    }
+
+    .profile-save-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gradient-sun);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      font-weight: 700;
+      padding: 13px 30px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-sun);
+      transition: var(--transition);
+    }
+
+    .profile-save-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px rgba(255,184,0,0.45);
+      filter: brightness(1.05);
+    }
+
+    .profile-save-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    .profile-save-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ── Toast Notification ── */
+    .profile-toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--gray-900);
+      color: var(--white);
+      padding: 13px 22px;
+      border-radius: 50px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 9999;
+      white-space: nowrap;
+    }
+
+    .profile-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .profile-toast.success { background: #1a7a3a; }
+    .profile-toast.error   { background: var(--danger); }
+
+    .profile-toast svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── Security Card ── */
+    .profile-security-card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .profile-security-card .profile-edit-card-header {
+      padding-bottom: 18px;
+    }
+
+    .security-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--gray-100);
+      gap: 16px;
+    }
+
+    .security-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .security-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .security-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .security-icon.green  { background: rgba(39,174,96,0.10); }
+    .security-icon.blue   { background: rgba(74,184,232,0.10); }
+    .security-icon.orange { background: rgba(255,184,0,0.10); }
+
+    .security-icon svg { width: 18px; height: 18px; }
+    .security-icon.green  svg { color: var(--success); }
+    .security-icon.blue   svg { color: var(--sky-blue); }
+    .security-icon.orange svg { color: var(--sun-gold); }
+
+    .security-item-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .security-item-desc {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+
+    .security-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .security-status-badge.verified {
+      background: rgba(39,174,96,0.10);
+      color: var(--success);
+    }
+
+    .security-status-badge.action {
+      background: rgba(255,184,0,0.10);
+      color: var(--sun-gold);
+      cursor: pointer;
+      border: none;
+      font-family: var(--font-body);
+      transition: var(--transition);
+    }
+
+    .security-status-badge.action:hover {
+      background: rgba(255,184,0,0.20);
+    }
+
+    .security-status-badge svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    /* ── Loading Skeleton ── */
+    .profile-skeleton {
+      display: block;
+      background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Danger Zone ── */
+    .profile-danger-zone {
+      background: rgba(231,76,60,0.04);
+      border: 1.5px solid rgba(231,76,60,0.15);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .danger-zone-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--danger);
+      margin-bottom: 3px;
+    }
+
+    .danger-zone-desc {
+      font-size: 0.76rem;
+      color: var(--gray-400);
+    }
+
+    .btn-danger-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 1.5px solid var(--danger);
+      color: var(--danger);
+      font-family: var(--font-body);
+      font-size: 0.83rem;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .btn-danger-outline:hover {
+      background: var(--danger);
+      color: var(--white);
+    }
+
+    .btn-danger-outline svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ── Page not logged in overlay ── */
+    .profile-gate {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 70px);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .profile-gate.show { display: flex; }
+
+    .profile-gate-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,184,0,0.12), rgba(255,107,53,0.08));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .profile-gate-icon svg { width: 38px; height: 38px; color: var(--sun-gold); }
+
+    .profile-gate h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 10px;
+    }
+
+    .profile-gate p {
+      font-size: 0.95rem;
+      color: var(--gray-500);
+      margin-bottom: 28px;
+      max-width: 360px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .profile-grid { grid-template-columns: 1fr; }
+      .profile-sidebar { position: static; }
+      .profile-id-card { display: grid; grid-template-columns: auto 1fr; }
+      .profile-id-card-top { border-radius: var(--radius-xl) 0 0 var(--radius-xl); padding: 24px 20px; }
+      .profile-id-card-top::after { display: none; }
+      .profile-id-card-body { padding: 18px; }
+    }
+
+    @media (max-width: 600px) {
+      .profile-fields-grid { grid-template-columns: 1fr; }
+      .profile-id-card { grid-template-columns: 1fr; }
+      .profile-id-card-top { border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+      .profile-action-bar { flex-direction: column; align-items: stretch; }
+      .profile-save-btn { justify-content: center; }
+      .profile-danger-zone { flex-direction: column; }
+    }
+
+    /* ── Nav Logout ── */
+    .nav-logout-btn {
+      background: none;
+      border: 1.5px solid var(--gray-200);
+      color: var(--gray-600);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .nav-logout-btn:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .nav-user-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--gray-700);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="logo" href="index.html">
+      <img src="shams.png" alt="شعار شمس" class="logo-img">
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html"               data-page="index.html">الرئيسية</a></li>
+      <li><a href="index.html#about-section">نظرة عامة</a></li>
+      <li><a href="index.html#features">المميزات</a></li>
+      <li><a href="pricing.html"             data-page="pricing.html">الاشتراكات</a></li>
+      <li><a href="roof.html"                data-page="roof.html">الحاسبة</a></li>
+      <li><a href="monitor.html"             data-page="monitor.html">
+        <span style="display:inline-flex;align-items:center;gap:5px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#FF8C00;display:inline-block;animation:sunPulse 3s ease-in-out infinite;"></span>
+          المراقب الحي
+        </span>
+      </a></li>
+    </ul>
+    <div class="nav-auth-btns" id="navAuthBtns">
+      <button class="nav-login-btn" onclick="location.href='login.html'">تسجيل الدخول</button>
+    </div>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     GATE (Not logged in)
+════════════════════════════════════════ -->
+<div class="profile-gate" id="profileGate">
+  <div class="profile-gate-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </div>
+  <h2>تسجيل الدخول مطلوب</h2>
+  <p>يجب تسجيل الدخول أولاً للوصول إلى ملفك الشخصي</p>
+  <a href="login.html" class="btn-primary">تسجيل الدخول ←</a>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PROFILE PAGE
+════════════════════════════════════════ -->
+<div class="profile-page" id="profilePage" style="display:none">
+  <div class="profile-container">
+
+    <!-- Header -->
+    <div class="profile-header">
+      <button class="profile-header-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+        رجوع
+      </button>
+      <div class="profile-header-title">
+        <h1>الملف الشخصي</h1>
+        <p>إدارة بياناتك الشخصية وإعدادات حسابك</p>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="profile-grid">
+
+      <!-- ── Sidebar ── -->
+      <aside class="profile-sidebar">
+        <div class="profile-id-card">
+          <div class="profile-id-card-top">
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar" id="sideAvatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <div class="profile-avatar-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            </div>
+            <div class="profile-id-name" id="sideFullName">جارٍ التحميل…</div>
+            <div class="profile-id-email" id="sideEmail">—</div>
+          </div>
+
+          <div class="profile-id-card-body">
+            <div class="profile-meta-item">
+              <div class="profile-meta-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 3.09 4.2 2 2 0 0 1 5.07 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L9.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div>
+                <span class="profile-meta-label">رقم الجوال</span>
+                <span class="profile-meta-value" id="sidePhone">—</span>
+              </div>
+            </div>
+            <div class="profile-meta-item">
+              <div class="profile-meta-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <span class="profile-meta-label">المدينة</span>
+                <span class="profile-meta-value" id="sideCity">—</span>
+              </div>
+            </div>
+            <div class="profile-meta-item">
+              <div class="profile-meta-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </div>
+              <div>
+                <span class="profile-meta-label">تاريخ الانضمام</span>
+                <span class="profile-meta-value" id="sideJoined">—</span>
+              </div>
+            </div>
+            <div class="profile-role-badge" id="sideRoleBadge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+              </svg>
+              مستخدم نشط
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── Main ── -->
+      <div class="profile-main">
+
+        <!-- بيانات شخصية -->
+        <div class="profile-edit-card" id="personalCard">
+          <div class="profile-edit-card-header">
+            <div class="profile-edit-card-title">
+              <div class="card-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <div>
+                <h2>البيانات الشخصية</h2>
+                <p>معلوماتك الأساسية المرتبطة بحسابك</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-edit-card-body">
+            <div class="profile-fields-grid">
+
+              <!-- الاسم الأول -->
+              <div class="profile-field">
+                <label>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  الاسم الأول
+                </label>
+                <div class="profile-input-wrap">
+                  <input class="profile-input" type="text" id="firstName" placeholder="أدخل اسمك الأول" autocomplete="given-name" />
+                  <span class="profile-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </span>
+                </div>
+                <span class="profile-field-err" id="firstNameErr">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  الاسم الأول مطلوب
+                </span>
+              </div>
+
+              <!-- الاسم الأخير -->
+              <div class="profile-field">
+                <label>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a svg4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  الاسم الأخير
+                </label>
+                <div class="profile-input-wrap">
+                  <input class="profile-input" type="text" id="lastName" placeholder="أدخل اسمك الأخير" autocomplete="family-name" />
+                  <span class="profile-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </span>
+                </div>
+              </div>
+
+              <!-- البريد الإلكتروني -->
+              <div class="profile-field full-width">
+                <label>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+                  البريد الإلكتروني
+                  <span class="email-locked-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    غير قابل للتغيير
+                  </span>
+                </label>
+                <div class="profile-input-wrap">
+                  <input class="profile-input" type="email" id="emailField" disabled autocomplete="email" />
+                  <span class="profile-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+                  </span>
+                </div>
+                <span class="profile-field-hint">البريد الإلكتروني مرتبط بحسابك ولا يمكن تغييره من هنا</span>
+              </div>
+
+              <!-- رقم الجوال -->
+              <div class="profile-field">
+                <label>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 3.09 4.2 2 2 0 0 1 5.07 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L9.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  رقم الجوال
+                </label>
+                <div class="profile-input-wrap">
+                  <input class="profile-input" type="tel" id="phoneField" placeholder="05xxxxxxxx" maxlength="15" autocomplete="tel" />
+                  <span class="profile-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 3.09 4.2 2 2 0 0 1 5.07 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L9.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  </span>
+                </div>
+                <span class="profile-field-err" id="phoneErr">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  رقم الجوال غير صحيح
+                </span>
+              </div>
+
+              <!-- المدينة -->
+              <div class="profile-field">
+                <label>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  المدينة
+                </label>
+                <div class="profile-input-wrap">
+                  <select class="profile-select" id="cityField">
+                    <option value="">— اختر مدينتك —</option>
+                    <option value="الرياض">الرياض</option>
+                    <option value="جدة">جدة</option>
+                    <option value="مكة المكرمة">مكة المكرمة</option>
+                    <option value="المدينة المنورة">المدينة المنورة</option>
+                    <option value="الدمام">الدمام</option>
+                    <option value="الخبر">الخبر</option>
+                    <option value="الظهران">الظهران</option>
+                    <option value="الأحساء">الأحساء</option>
+                    <option value="تبوك">تبوك</option>
+                    <option value="بريدة">بريدة</option>
+                    <option value="عبها">عبها</option>
+                    <option value="خميس مشيط">خميس مشيط</option>
+                    <option value="حائل">حائل</option>
+                    <option value="نجران">نجران</option>
+                    <option value="الجبيل">الجبيل</option>
+                    <option value="ينبع">ينبع</option>
+                    <option value="جازان">جازان</option>
+                    <option value="الطائف">الطائف</option>
+                    <option value="القطيف">القطيف</option>
+                    <option value="حفر الباطن">حفر الباطن</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
+                  <span class="profile-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </span>
+                  <span class="select-chevron">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </div>
+              </div>
+
+            </div><!-- /fields-grid -->
+
+            <!-- Action Bar -->
+            <div class="profile-action-bar">
+              <span class="profile-action-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                بياناتك محمية ومشفرة بالكامل
+              </span>
+              <button class="profile-save-btn" id="saveBtn" onclick="saveProfile()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                حفظ التعديلات
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- الأمان والحساب -->
+        <div class="profile-security-card">
+          <div class="profile-edit-card-header">
+            <div class="profile-edit-card-title">
+              <div class="card-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <div>
+                <h2>الأمان والحساب</h2>
+                <p>إعدادات الأمان وإدارة الحساب</p>
+              </div>
+            </div>
+          </div>
+          <div class="profile-edit-card-body">
+
+            <div class="security-item">
+              <div class="security-item-left">
+                <div class="security-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="security-item-title">البريد الإلكتروني</div>
+                  <div class="security-item-desc" id="secEmailDesc">—</div>
+                </div>
+              </div>
+              <span class="security-status-badge verified">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                موثّق
+              </span>
+            </div>
+
+            <div class="security-item">
+              <div class="security-item-left">
+                <div class="security-icon orange">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="security-item-title">كلمة المرور</div>
+                  <div class="security-item-desc">يُنصح بتغييرها دورياً لأمان أعلى</div>
+                </div>
+              </div>
+              <button class="security-status-badge action" onclick="sendPasswordReset()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                </svg>
+                تغيير كلمة المرور
+              </button>
+            </div>
+
+            <div class="security-item">
+              <div class="security-item-left">
+                <div class="security-icon blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="security-item-title">آخر تسجيل دخول</div>
+                  <div class="security-item-desc" id="lastLogin">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- منطقة الخطر -->
+            <div style="margin-top: 20px;">
+              <div class="profile-danger-zone">
+                <div>
+                  <div class="danger-zone-title">تسجيل الخروج من جميع الأجهزة</div>
+                  <div class="danger-zone-desc">سيتم إنهاء جميع الجلسات النشطة على أجهزتك المختلفة</div>
+                </div>
+                <button class="btn-danger-outline" onclick="doLogout()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  تسجيل الخروج
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /profile-main -->
+    </div><!-- /profile-grid -->
+  </div><!-- /profile-container -->
+</div><!-- /profile-page -->
+
+<!-- Toast -->
+<div class="profile-toast" id="profileToast">
+  <svg id="toastIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  <span id="toastMsg">تم الحفظ بنجاح</span>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   شمس — Profile Page Logic
+   ══════════════════════════════════════════════ */
+
+let currentUser  = null;
+let currentEmail = '';
+
+// ── تشغيل عند التحميل ──────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await initProfile();
+  initNavbar();
+  setActiveNav();
+});
+
+// ── تهيئة الصفحة ──────────────────────────────────────────
+async function initProfile() {
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    document.getElementById('profileGate').classList.add('show');
+    return;
+  }
+
+  currentUser  = session.user;
+  currentEmail = session.user.email;
+
+  document.getElementById('profilePage').style.display = 'block';
+
+  // جلب بيانات البروفايل من قاعدة البيانات
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('full_name, phone, city, role')
+    .eq('id', currentUser.id)
+    .single();
+
+  // تفكيك الاسم
+  const fullName  = profile?.full_name || '';
+  const nameParts = fullName.trim().split(/\s+/);
+  const firstName = nameParts[0] || '';
+  const lastName  = nameParts.slice(1).join(' ') || '';
+
+  // ملء الحقول
+  document.getElementById('firstName').value  = firstName;
+  document.getElementById('lastName').value   = lastName;
+  document.getElementById('emailField').value = currentEmail;
+  document.getElementById('phoneField').value = profile?.phone || '';
+  document.getElementById('cityField').value  = profile?.city  || '';
+
+  // تحديث الـ Sidebar
+  updateSidebar(profile, firstName, lastName);
+
+  // تاريخ الانضمام
+  const joined = new Date(currentUser.created_at);
+  document.getElementById('sideJoined').textContent = joined.toLocaleDateString('ar-SA', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  // آخر تسجيل دخول
+  const lastSign = currentUser.last_sign_in_at
+    ? new Date(currentUser.last_sign_in_at)
+    : null;
+  document.getElementById('lastLogin').textContent = lastSign
+    ? `آخر دخول: ${lastSign.toLocaleString('ar-SA', { dateStyle:'short', timeStyle:'short' })}`
+    : 'لا توجد بيانات';
+
+  // البريد في قسم الأمان
+  document.getElementById('secEmailDesc').textContent = currentEmail;
+
+  // الدور
+  if (profile?.role === 'admin') {
+    document.getElementById('sideRoleBadge').innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+      مدير النظام`;
+  }
+}
+
+// ── تحديث الـ Sidebar ────────────────────────────────────
+function updateSidebar(profile, firstName, lastName) {
+  const fullDisplay = [firstName, lastName].filter(Boolean).join(' ') || currentEmail;
+
+  document.getElementById('sideFullName').textContent = fullDisplay;
+  document.getElementById('sideEmail').textContent    = currentEmail;
+  document.getElementById('sidePhone').textContent    = profile?.phone || '—';
+  document.getElementById('sideCity').textContent     = profile?.city  || '—';
+
+  // الحرف الأول في الأفاتار
+  const initial = firstName?.[0] || currentEmail?.[0] || '؟';
+  document.getElementById('sideAvatar').innerHTML = `
+    <span style="font-size:2.2rem;font-weight:800;color:white;line-height:1">${initial.toUpperCase()}</span>`;
+  document.getElementById('sideAvatar').style.background =
+    'linear-gradient(135deg, rgba(255,255,255,0.35), rgba(255,255,255,0.15))';
+}
+
+// ── حفظ البروفايل ─────────────────────────────────────────
+async function saveProfile() {
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName  = document.getElementById('lastName').value.trim();
+  const phone     = document.getElementById('phoneField').value.trim();
+  const city      = document.getElementById('cityField').value;
+
+  // Validation
+  let valid = true;
+
+  const fnErr = document.getElementById('firstNameErr');
+  if (!firstName) {
+    document.getElementById('firstName').classList.add('error');
+    fnErr.classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('firstName').classList.remove('error');
+    fnErr.classList.remove('show');
+  }
+
+  const phoneErr = document.getElementById('phoneErr');
+  if (phone && !/^(05\d{8}|\+9665\d{8}|\d{8,15})$/.test(phone.replace(/\s/g,''))) {
+    document.getElementById('phoneField').classList.add('error');
+    phoneErr.classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('phoneField').classList.remove('error');
+    phoneErr.classList.remove('show');
+  }
+
+  if (!valid) return;
+
+  // تعطيل الزر
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"
+         style="animation:spin 0.8s linear infinite">
+      <circle cx="12" cy="12" r="10" stroke-dasharray="40 20" stroke-dashoffset="0"/>
+    </svg>
+    جارٍ الحفظ…`;
+
+  try {
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+    // محاولة upsert مع كل الحقول
+    let { error } = await sb
+      .from('profiles')
+      .upsert({
+        id:        currentUser.id,
+        full_name: fullName,
+        phone:     phone || null,
+        city_id:   city ? parseInt(city) : null
+      }, { onConflict: 'id' });
+
+    // إذا فشل بسبب عمود غير موجود، جرب بحقول أقل
+    if (error) {
+      console.error('Upsert error details:', JSON.stringify(error));
+      // جرب update فقط
+      ({ error } = await sb
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          phone:     phone || null,
+          city_id:   city ? parseInt(city) : null
+        })
+        .eq('id', currentUser.id));
+      
+      if (error) {
+        console.error('Update also failed:', JSON.stringify(error));
+        throw error;
+      }
+    }
+
+    // تحديث الـ Sidebar
+    updateSidebar({ phone, city }, firstName, lastName);
+
+    showToast('تم حفظ التعديلات بنجاح ✓', 'success');
+  } catch (err) {
+    console.error('Profile update error:', err);
+    showToast('حدث خطأ أثناء الحفظ، حاول مجدداً', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      حفظ التعديلات`;
+  }
+}
+
+// ── إرسال رابط تغيير كلمة المرور ─────────────────────────
+async function sendPasswordReset() {
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(currentEmail, {
+      redirectTo: window.location.origin + '/reset-password.html'
+    });
+    if (error) throw error;
+    showToast('تم إرسال رابط تغيير كلمة المرور إلى بريدك', 'success');
+  } catch {
+    showToast('تعذر إرسال الرابط، حاول مجدداً', 'error');
+  }
+}
+
+// ── تسجيل الخروج ──────────────────────────────────────────
+async function doLogout() {
+  await sb.auth.signOut();
+  location.href = 'login.html';
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('profileToast');
+  const icon  = document.getElementById('toastIcon');
+  const text  = document.getElementById('toastMsg');
+
+  toast.className = 'profile-toast ' + type;
+
+  if (type === 'success') {
+    icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+  }
+
+  text.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ── Navbar ────────────────────────────────────────────────
+async function initNavbar() {
+  const { data: { session } } = await sb.auth.getSession();
+  const btns = document.getElementById('navAuthBtns');
+  if (!session) return;
+
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('full_name')
+    .eq('id', session.user.id)
+    .single();
+
+  const name = profile?.full_name || session.user.email;
+
+  btns.innerHTML = `
+    <a href="profile.html" class="nav-user-name" style="text-decoration:none;cursor:pointer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      ${name}
+    </a>
+    <button class="nav-logout-btn" onclick="doLogout()">تسجيل الخروج</button>`;
+}
+
+function setActiveNav() {
+  const page = location.pathname.split('/').pop() || 'profile.html';
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('data-page') === page);
+  });
+}
+
+// ── Hamburger ─────────────────────────────────────────────
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('navLinks').classList.toggle('open');
+});
+
+// ── Spin keyframes للزر ───────────────────────────────────
+const style = document.createElement('style');
+style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+document.head.appendChild(style);
+</script>
+
+</body>
+</html>

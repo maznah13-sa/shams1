@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – مراقب النظام الحي</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    /* ══ Page Hero ══ */
+    .monitor-hero {
+      min-height: 38vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 24px 60px;
+      text-align: center;
+      background: linear-gradient(180deg,#FFF4D6 0%,#F7EAC8 40%,#E7F3F8 70%,#BFD8E6 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .monitor-hero::before {
+      content: '';
+      position: absolute;
+      width: 420px; height: 420px;
+      top: -160px; left: 50%;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,184,0,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .monitor-hero-content { position: relative; z-index: 2; }
+    .monitor-hero h1 {
+      font-size: clamp(2rem,5vw,3rem);
+      font-weight: 900;
+      background: var(--gradient-sun);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .monitor-hero p {
+      color: var(--gray-600);
+      font-size: 1.05rem;
+      max-width: 500px;
+      margin: 0 auto 28px;
+    }
+
+    /* ══ Status Badge ══ */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      border: 1.5px solid;
+      margin-bottom: 8px;
+    }
+    .status-badge.disconnected {
+      background: rgba(231,76,60,.08);
+      border-color: rgba(231,76,60,.30);
+      color: var(--danger);
+    }
+    .status-badge.connected {
+      background: rgba(39,174,96,.08);
+      border-color: rgba(39,174,96,.30);
+      color: var(--success);
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-dot.pulse {
+      animation: dotPulse 1.4s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(1.5); }
+    }
+
+    /* ══ Connect Button ══ */
+    .connect-wrap { display: flex; justify-content: center; margin-bottom: 0; }
+    #connectBtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gradient-sun);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 36px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-sun);
+      transition: var(--transition);
+    }
+    #connectBtn:hover { transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 12px 40px rgba(255,184,0,.45); }
+    #connectBtn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    /* ══ Main Dashboard Section ══ */
+    .monitor-section {
+      padding: 64px 24px 80px;
+      background: var(--off-white);
+    }
+
+    /* ══ KPI Cards ══ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+    .kpi-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-card);
+      padding: 28px 24px;
+      text-align: center;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; left: 0;
+      height: 3px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .kpi-card.power::before   { background: var(--gradient-sun); }
+    .kpi-card.current::before { background: linear-gradient(135deg,#4AB8E8,#1A8FC8); }
+    .kpi-card.voltage::before { background: linear-gradient(135deg,#27AE60,#2ECC71); }
+    .kpi-card.battery::before { background: linear-gradient(135deg,#9B59B6,#8E44AD); }
+
+    .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+    .kpi-icon-wrap {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,184,0,0.12), rgba(255,107,53,0.08));
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+      transition: var(--transition);
+    }
+    .kpi-svg-icon { color: var(--sun-gold); transition: var(--transition); }
+    .kpi-card.current .kpi-icon-wrap { background: linear-gradient(135deg, rgba(74,184,232,0.12), rgba(26,143,200,0.08)); }
+    .kpi-card.current .kpi-svg-icon  { color: var(--sky-blue); }
+    .kpi-card.voltage .kpi-icon-wrap { background: linear-gradient(135deg, rgba(39,174,96,0.12), rgba(46,204,113,0.08)); }
+    .kpi-card.voltage .kpi-svg-icon  { color: var(--success); }
+    .kpi-card.battery .kpi-icon-wrap { background: linear-gradient(135deg, rgba(155,89,182,0.12), rgba(142,68,173,0.08)); }
+    .kpi-card.battery .kpi-svg-icon  { color: #9B59B6; }
+    .kpi-card:hover .kpi-icon-wrap   { background: rgba(255,255,255,0.20); }
+    .kpi-card:hover .kpi-svg-icon    { color: var(--white); }
+    .kpi-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gray-400);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--gray-900);
+      line-height: 1;
+      margin-bottom: 4px;
+      transition: color 0.4s;
+    }
+    .kpi-unit {
+      font-size: 0.82rem;
+      color: var(--gray-400);
+      font-weight: 600;
+    }
+    .kpi-value.highlight { color: var(--sun-gold); }
+
+    /* ══ Chart Card ══ */
+    .chart-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-card);
+      padding: 32px 28px;
+      margin-bottom: 24px;
+    }
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .chart-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--gray-600);
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .legend-dot.power   { background: #FFB800; }
+    .legend-dot.current { background: #4AB8E8; }
+
+    /* SVG Chart */
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+    #powerChart {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+    .chart-empty {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--gray-400);
+      font-size: 0.9rem;
+    }
+    .chart-empty span { font-size: 2rem; display: block; margin-bottom: 8px; }
+
+    /* ══ Log Table ══ */
+    .log-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-card);
+      padding: 28px;
+    }
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .log-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .log-clear-btn {
+      background: none;
+      border: 1.5px solid var(--gray-200);
+      color: var(--gray-600);
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .log-clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    .log-table-wrap { overflow-x: auto; }
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .log-table th {
+      background: var(--gray-50);
+      color: var(--gray-600);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: right;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .log-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--gray-50);
+      color: var(--gray-800);
+      font-weight: 600;
+    }
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-table tr:hover td { background: var(--gray-50); }
+    .log-empty {
+      text-align: center;
+      padding: 32px;
+      color: var(--gray-400);
+      font-size: 0.88rem;
+    }
+
+    /* ══ How-to Card ══ */
+    .howto-card {
+      background: linear-gradient(135deg, rgba(255,184,0,.06), rgba(74,184,232,.06));
+      border: 1.5px dashed rgba(255,184,0,.35);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      margin-bottom: 24px;
+    }
+    .howto-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .howto-steps {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 16px;
+    }
+    .howto-step {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 18px 16px;
+      border: 1px solid var(--gray-100);
+      box-shadow: var(--shadow-sm);
+    }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--gradient-sun);
+      color: var(--white);
+      font-size: 0.78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .howto-step strong {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 4px;
+    }
+    .howto-step p {
+      font-size: 0.80rem;
+      color: var(--gray-600);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* ══ Not Supported Banner ══ */
+    .no-serial-banner {
+      background: rgba(231,76,60,.07);
+      border: 1.5px solid rgba(231,76,60,.25);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      text-align: center;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--danger);
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    /* ══ Responsive ══ */
+    @media (max-width: 960px) {
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+      .howto-steps { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 540px) {
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+      .kpi-value { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="logo" href="index.html">
+      <img src="shams.png" alt="شعار شمس" class="logo-img">
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="index.html#about-section">نظرة عامة</a></li>
+      <li><a href="index.html#features">المميزات</a></li>
+      <li><a href="pricing.html">الاشتراكات</a></li>
+      <li><a href="roof.html">الحاسبة</a></li>
+      <li><a href="monitor.html" class="active">المراقب الحي</a></li>
+    </ul>
+    <div class="nav-auth-btns" id="navAuthBtns">
+      <button class="nav-login-btn" onclick="location.href='login.html'">تسجيل الدخول</button>
+      <button class="nav-cta-btn" id="openChatBtn">💬 المساعد الذكي</button>
+    </div>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="monitor-hero">
+  <div class="monitor-hero-content">
+    <span class="section-label">⚡ مباشر من Arduino</span>
+    <h1>مراقب النظام الحي</h1>
+    <p>تابع إنتاج الطاقة الشمسية الفعلي من لوحة Arduino عبر USB مباشرةً من المتصفح</p>
+
+    <div id="statusBadge" class="status-badge disconnected">
+      <span class="status-dot"></span>
+      غير متصل
+    </div>
+    <br/>
+
+    <div class="connect-wrap">
+      <button id="connectBtn">⚡ اتصل بـ Arduino</button>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN CONTENT -->
+<section class="monitor-section">
+  <div class="container">
+
+    <!-- تنبيه متصفح غير مدعوم -->
+    <div class="no-serial-banner" id="noSerialBanner">
+      ⚠️ متصفحك لا يدعم Web Serial API — استخدم Google Chrome أو Edge
+    </div>
+
+    <!-- خطوات الاستخدام -->
+    <div class="howto-card">
+      <div class="howto-title">🔌 كيف تشغّل المراقب؟</div>
+      <div class="howto-steps">
+        <div class="howto-step">
+          <div class="step-num">1</div>
+          <strong>حمّل الكود على Arduino</strong>
+          <p>ارفع كود القياس على لوحة Arduino Uno عبر Arduino IDE</p>
+        </div>
+        <div class="howto-step">
+          <div class="step-num">2</div>
+          <strong>وصّل USB باللاب</strong>
+          <p>وصّل اللوحة بكابل USB، وافتح هذه الصفحة في Chrome</p>
+        </div>
+        <div class="howto-step">
+          <div class="step-num">3</div>
+          <strong>اضغط "اتصل بـ Arduino"</strong>
+          <p>اختر المنفذ الصح وابدأ مشاهدة البيانات مباشرةً</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card power">
+        <div class="kpi-icon-wrap">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28" class="kpi-svg-icon">
+            <path d="M26 6L10 26h14l-2 16 18-22H26L28 6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="kpi-label">الطاقة</div>
+        <div class="kpi-value" id="valPower">—</div>
+        <div class="kpi-unit">واط</div>
+      </div>
+      <div class="kpi-card current">
+        <div class="kpi-icon-wrap">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28" class="kpi-svg-icon">
+            <circle cx="24" cy="24" r="9" stroke="currentColor" stroke-width="2"/>
+            <line x1="24" y1="4"  x2="24" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="24" y1="38" x2="24" y2="44" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="4"  y1="24" x2="10" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="38" y1="24" x2="44" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="9"  y1="9"  x2="13" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="35" y1="35" x2="39" y2="39" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="35" y1="9"  x2="39" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="9"  y1="35" x2="13" y2="39" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="kpi-label">التيار</div>
+        <div class="kpi-value" id="valCurrent">—</div>
+        <div class="kpi-unit">أمبير</div>
+      </div>
+      <div class="kpi-card voltage">
+        <div class="kpi-icon-wrap">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28" class="kpi-svg-icon">
+            <rect x="12" y="16" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M32 20h4a2 2 0 010 4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="17" y1="24" x2="22" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="19" y1="21" x2="19" y2="27" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="kpi-label">الجهد</div>
+        <div class="kpi-value" id="valVoltage">—</div>
+        <div class="kpi-unit">فولت</div>
+      </div>
+      <div class="kpi-card battery">
+        <div class="kpi-icon-wrap">
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28" class="kpi-svg-icon">
+            <polyline points="8,36 18,24 26,30 40,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="32,14 40,14 40,22"       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="kpi-label">آخر تحديث</div>
+        <div class="kpi-value" id="valTime" style="font-size:1.3rem">—</div>
+        <div class="kpi-unit">الوقت</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">📈 الطاقة والتيار - آخر 30 قراءة</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot power"></div>الطاقة (واط)</div>
+          <div class="legend-item"><div class="legend-dot current"></div>التيار (أمبير ×10)</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="powerChart" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="gradPower" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#FFB800" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#FFB800" stop-opacity="0.03"/>
+            </linearGradient>
+            <linearGradient id="gradCurrent" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#4AB8E8" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#4AB8E8" stop-opacity="0.03"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid Lines -->
+          <line x1="0" y1="50"  x2="600" y2="50"  stroke="#EEF0F4" stroke-width="1"/>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="#EEF0F4" stroke-width="1"/>
+          <line x1="0" y1="150" x2="600" y2="150" stroke="#EEF0F4" stroke-width="1"/>
+          <!-- Paths drawn by JS -->
+          <path id="areaPower"   fill="url(#gradPower)"   d="" opacity="0.7"/>
+          <path id="linePower"   fill="none" stroke="#FFB800" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d=""/>
+          <path id="areaCurrent" fill="url(#gradCurrent)" d="" opacity="0.5"/>
+          <path id="lineCurrent" fill="none" stroke="#4AB8E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""/>
+        </svg>
+        <div class="chart-empty" id="chartEmpty">
+          <span>📡</span>
+          في انتظار البيانات من Arduino...
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Table -->
+    <div class="log-card">
+      <div class="log-header">
+        <div class="log-title">📋 سجل القراءات</div>
+        <button class="log-clear-btn" onclick="clearLog()">مسح السجل</button>
+      </div>
+      <div class="log-table-wrap">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>الوقت</th>
+              <th>الطاقة (واط)</th>
+              <th>التيار (أمبير)</th>
+              <th>الجهد (فولت)</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="4" class="log-empty">لا توجد بيانات بعد — وصّل Arduino لتبدأ القراءة</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-logo">
+      <img src="shams.png" alt="شعار شمس" class="logo-img">
+    </div>
+    <nav class="footer-nav">
+      <a href="index.html">الرئيسية</a>
+      <a href="index.html#about-section">نظرة عامة</a>
+      <a href="index.html#features">المميزات</a>
+      <a href="pricing.html">الاشتراكات</a>
+      <a href="roof.html">الحاسبة</a>
+      <a href="login.html">تسجيل الدخول</a>
+    </nav>
+    <div class="footer-divider"></div>
+    <p class="footer-tagline">منصة حاسبة الطاقة الشمسية للمملكة العربية السعودية</p>
+    <p class="footer-copy">أول الطريق نحو إنجاز أكبر&nbsp;|&nbsp;مشروع تخرج طالبات برمجة&nbsp;|&nbsp;© 2026 شمس. جميع الحقوق محفوظة</p>
+  </div>
+</footer>
+
+<!-- CHATBOT -->
+<div class="chat-widget" id="chatWidget">
+  <div class="chat-header">
+    <div class="chat-header-info">
+      <img src="shamsai.png" alt="شمس" class="chat-avatar-logo">
+      <div>
+        <strong>مساعد شمس</strong>
+        <span class="chat-status">متصل الآن</span>
+      </div>
+    </div>
+    <button class="chat-close" id="closeChatBtn">✕</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg bot"><div class="msg-bubble">مرحباً! أنا مساعد شمس 🌞 اسألني عن الطاقة الشمسية، الأسعار، أو الباقات!</div></div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" id="chatInput" placeholder="اكتب سؤالك هنا..." />
+    <button id="sendMsgBtn">➤</button>
+  </div>
+  <div class="chat-suggestions">
+    <button class="suggestion-btn" onclick="sendSuggestion('ما الباقات المتاحة؟')">📦 الباقات</button>
+    <button class="suggestion-btn" onclick="sendSuggestion('كم التوفير في الفاتورة؟')">💰 التوفير</button>
+    <button class="suggestion-btn" onclick="sendSuggestion('ما هو التركيب الجزئي؟')">🪟 تركيب جزئي</button>
+  </div>
+</div>
+<button class="chat-bubble" id="chatBubble">
+  <img src="shamsai.png" alt="شمس" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+</button>
+
+<a href="inquiries.html" class="inquiries-floating-btn">💬</a>
+
+<script src="app.js"></script>
+
+<script>
+/* ══════════════════════════════════════════
+   مراقب شمس — Web Serial API
+══════════════════════════════════════════ */
+
+const MAX_POINTS = 30;
+const readings   = [];   // { time, power, current, voltage }
+let   port, reader, isConnected = false;
+
+/* ── عناصر الـ DOM ── */
+const connectBtn   = document.getElementById('connectBtn');
+const statusBadge  = document.getElementById('statusBadge');
+const valPower     = document.getElementById('valPower');
+const valCurrent   = document.getElementById('valCurrent');
+const valVoltage   = document.getElementById('valVoltage');
+const valTime      = document.getElementById('valTime');
+const logBody      = document.getElementById('logBody');
+const chartEmpty   = document.getElementById('chartEmpty');
+
+/* ── تحقق من دعم المتصفح ── */
+if (!('serial' in navigator)) {
+  document.getElementById('noSerialBanner').style.display = 'block';
+  connectBtn.disabled = true;
+  connectBtn.textContent = '⚠️ المتصفح غير مدعوم';
+}
+
+/* ── زر الاتصال ── */
+connectBtn.addEventListener('click', async () => {
+  if (isConnected) {
+    await disconnect();
+  } else {
+    await connect();
+  }
+});
+
+async function connect() {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    isConnected = true;
+    setStatus(true);
+    connectBtn.textContent = '⛔ قطع الاتصال';
+    readLoop();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function disconnect() {
+  isConnected = false;
+  try {
+    if (reader) { await reader.cancel(); reader = null; }
+    if (port)   { await port.close();   port   = null; }
+  } catch(e) {}
+  setStatus(false);
+  connectBtn.textContent = '⚡ اتصل بـ Arduino';
+}
+
+/* ── حلقة القراءة ── */
+async function readLoop() {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  reader = decoder.readable.getReader();
+  let buffer = '';
+
+  try {
+    while (isConnected) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      lines.forEach(line => parseLine(line.trim()));
+    }
+  } catch(e) {
+    if (isConnected) console.error(e);
+  }
+}
+
+/* ── تحليل السطر القادم من Arduino ── */
+// تنسيق: POWER:2.30,CURRENT:0.42,VOLTAGE:5.50
+function parseLine(line) {
+  if (!line || !line.includes('POWER:')) return;
+
+  const get = (key) => {
+    const m = line.match(new RegExp(key + ':([\\d.]+)'));
+    return m ? parseFloat(m[1]) : 0;
+  };
+
+  const power   = get('POWER');
+  const current = get('CURRENT');
+  const voltage = get('VOLTAGE');
+  const now     = new Date();
+  const timeStr = now.toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+  /* تحديث الـ KPI */
+  valPower.textContent   = power.toFixed(2);
+  valCurrent.textContent = current.toFixed(3);
+  valVoltage.textContent = voltage.toFixed(2);
+  valTime.textContent    = timeStr;
+  valPower.classList.add('highlight');
+  setTimeout(() => valPower.classList.remove('highlight'), 600);
+
+  /* حفظ القراءة */
+  readings.push({ timeStr, power, current, voltage });
+  if (readings.length > MAX_POINTS) readings.shift();
+
+  /* تحديث الرسم والجدول */
+  updateChart();
+  addLogRow(timeStr, power, current, voltage);
+}
+
+/* ══ رسم بياني SVG ══ */
+function updateChart() {
+  if (readings.length < 2) { chartEmpty.style.display = 'none'; return; }
+  chartEmpty.style.display = 'none';
+
+  const W = 600, H = 180, PAD = 10;
+  const n = readings.length;
+
+  const maxP = Math.max(...readings.map(r => r.power),   0.01);
+  const maxC = Math.max(...readings.map(r => r.current), 0.01);
+
+  /* نقاط الطاقة */
+  const pPoints = readings.map((r, i) => {
+    const x = PAD + (i / (MAX_POINTS - 1)) * (W - PAD * 2);
+    const y = H - PAD - (r.power / maxP) * (H - PAD * 2);
+    return [x, y];
+  });
+
+  /* نقاط التيار (×10 للتوضيح) */
+  const cPoints = readings.map((r, i) => {
+    const x = PAD + (i / (MAX_POINTS - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((r.current * 10) / (maxC * 10)) * (H - PAD * 2);
+    return [x, y];
+  });
+
+  const toPath  = pts => pts.map((p,i) => (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const toArea  = (pts, bottom) => toPath(pts) + ` L${pts[pts.length-1][0].toFixed(1)},${bottom} L${pts[0][0].toFixed(1)},${bottom} Z`;
+
+  document.getElementById('linePower').setAttribute('d', toPath(pPoints));
+  document.getElementById('areaPower').setAttribute('d', toArea(pPoints, H - PAD));
+  document.getElementById('lineCurrent').setAttribute('d', toPath(cPoints));
+  document.getElementById('areaCurrent').setAttribute('d', toArea(cPoints, H - PAD));
+}
+
+/* ══ جدول السجل ══ */
+function addLogRow(time, power, current, voltage) {
+  if (logBody.querySelector('.log-empty')) logBody.innerHTML = '';
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${time}</td>
+    <td style="color:var(--sun-gold);font-weight:800">${power.toFixed(2)}</td>
+    <td style="color:var(--sky-blue);font-weight:700">${current.toFixed(3)}</td>
+    <td style="color:var(--success);font-weight:700">${voltage.toFixed(2)}</td>
+  `;
+  logBody.insertBefore(tr, logBody.firstChild);
+
+  /* احتفظ بآخر 50 صف */
+  while (logBody.children.length > 50) logBody.removeChild(logBody.lastChild);
+}
+
+function clearLog() {
+  logBody.innerHTML = '<tr><td colspan="4" class="log-empty">لا توجد بيانات بعد — وصّل Arduino لتبدأ القراءة</td></tr>';
+  readings.length = 0;
+  ['linePower','areaPower','lineCurrent','areaCurrent'].forEach(id => {
+    document.getElementById(id).setAttribute('d','');
+  });
+  chartEmpty.style.display = 'block';
+  valPower.textContent = valCurrent.textContent = valVoltage.textContent = valTime.textContent = '—';
+}
+
+/* ══ شارة الحالة ══ */
+function setStatus(connected) {
+  const dot = statusBadge.querySelector('.status-dot');
+  if (connected) {
+    statusBadge.className = 'status-badge connected';
+    statusBadge.innerHTML = '<span class="status-dot pulse"></span> متصل — يقرأ البيانات';
+  } else {
+    statusBadge.className = 'status-badge disconnected';
+    statusBadge.innerHTML = '<span class="status-dot"></span> غير متصل';
+  }
+}
+
+/* ══ Navbar Auth ══ */
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  const btns = document.getElementById('navAuthBtns');
+  if (session) {
+    const { data: profile } = await sb.from('profiles').select('full_name').eq('id', session.user.id).single();
+    const name = profile?.full_name || session.user.email;
+    btns.innerHTML = `
+      <a href="profile.html" class="nav-user-name" style="text-decoration:none;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${name}</a>
+      <button class="nav-logout-btn" onclick="doLogout()">تسجيل الخروج</button>
+      <button class="nav-cta-btn" id="openChatBtn">💬 المساعد الذكي</button>
+    `;
+    document.getElementById('openChatBtn')?.addEventListener('click', toggleChat);
+  }
+})();
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.href = 'login.html';
+}
+</script>
+
+</body>
+</html>

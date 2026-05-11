@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شمس – إتمام الدفع</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    body { background: var(--gray-50); }
+    .payment-page { padding: 100px 24px 60px; min-height: 100vh; }
+    .payment-layout { display: grid; grid-template-columns: 1fr 420px; gap: 32px; max-width: 1000px; margin: 0 auto; align-items: start; }
+    .order-card { background: var(--white); border-radius: var(--radius-xl); padding: 32px; border: 1px solid var(--gray-100); box-shadow: var(--shadow-card); position: sticky; top: 90px; }
+    .order-card h3 { font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--gray-100); }
+    .order-plan { display: flex; align-items: center; gap: 14px; padding: 16px; background: linear-gradient(135deg, rgba(255,184,0,0.08), rgba(255,107,53,0.04)); border-radius: var(--radius-md); border: 1px solid rgba(255,184,0,0.20); margin-bottom: 20px; }
+    .order-plan-icon { font-size: 2rem; }
+    .order-plan-name { font-size: 1rem; font-weight: 700; color: var(--gray-900); }
+    .order-plan-sub  { font-size: 0.82rem; color: var(--gray-500); }
+    .order-lines { margin-bottom: 16px; }
+    .order-line { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 0.9rem; color: var(--gray-600); }
+    .order-line:last-child { border: none; }
+    .order-line strong { color: var(--gray-900); font-weight: 700; }
+    .order-total { display: flex; justify-content: space-between; padding: 16px 0 0; font-size: 1.05rem; font-weight: 800; color: var(--gray-900); border-top: 2px solid var(--gray-200); }
+    .order-total .total-price { color: var(--sun-gold); font-size: 1.4rem; }
+    .order-secure { display: flex; align-items: center; gap: 8px; margin-top: 20px; padding: 12px 16px; background: rgba(39,174,96,0.08); border-radius: var(--radius-sm); border: 1px solid rgba(39,174,96,0.20); font-size: 0.82rem; color: var(--success); font-weight: 600; }
+    .pay-card { background: var(--white); border-radius: var(--radius-xl); padding: 36px; border: 1px solid var(--gray-100); box-shadow: var(--shadow-card); }
+    .pay-card h2 { font-size: 1.4rem; font-weight: 800; color: var(--gray-900); margin-bottom: 6px; }
+    .pay-card .sub { font-size: 0.9rem; color: var(--gray-500); margin-bottom: 28px; }
+    .pay-steps { display: flex; align-items: center; gap: 0; margin-bottom: 32px; }
+    .step { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; flex-shrink: 0; }
+    .step.done .step-num { background: var(--gradient-sun); color: var(--white); }
+    .step.active .step-num { background: var(--gradient-sun); color: var(--white); box-shadow: 0 0 0 4px rgba(255,184,0,0.20); }
+    .step.inactive .step-num { background: var(--gray-200); color: var(--gray-500); }
+    .step-label { font-size: 0.82rem; font-weight: 600; color: var(--gray-500); }
+    .step.active .step-label, .step.done .step-label { color: var(--gray-900); }
+    .step-line { flex: 1; height: 2px; background: var(--gray-200); margin: 0 8px; }
+    .step-line.done { background: var(--gradient-sun); }
+    .method-tabs { display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+    .method-tab { display: flex; align-items: center; gap: 8px; padding: 11px 18px; border: 2px solid var(--gray-200); border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); background: var(--white); font-family: var(--font-body); font-size: 0.88rem; font-weight: 600; color: var(--gray-600); }
+    .method-tab:hover { border-color: var(--gray-400); }
+    .method-tab.active { border-color: var(--sun-yellow); background: rgba(255,184,0,0.06); color: var(--gray-900); }
+    .method-tab .tab-icon { font-size: 1.1rem; }
+    .pay-field { margin-bottom: 20px; }
+    .pay-field label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--gray-700); margin-bottom: 7px; }
+    .pay-input { width: 100%; padding: 13px 16px; border: 2px solid var(--gray-200); border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.95rem; color: var(--gray-800); background: var(--gray-50); transition: var(--transition); outline: none; direction: ltr; text-align: right; }
+    .pay-input:focus { border-color: var(--sun-yellow); background: var(--white); box-shadow: 0 0 0 4px rgba(255,184,0,0.12); }
+    .pay-input::placeholder { color: var(--gray-400); }
+    .pay-input.error { border-color: var(--danger); }
+    .pay-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card-input-wrap { position: relative; }
+    .card-brand { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; }
+    .card-brand span { font-size: 0.7rem; font-weight: 800; padding: 2px 5px; border-radius: 3px; }
+    .brand-visa { background: #1a1f71; color: white; }
+    .brand-mc { background: #eb001b; color: white; }
+    .alt-method { display: none; }
+    .alt-method.show { display: block; }
+    .stc-info { background: linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%); border-radius: var(--radius-md); padding: 24px; text-align: center; color: white; }
+    .stc-info .stc-logo { font-size: 2rem; margin-bottom: 8px; }
+    .stc-info p { font-size: 0.9rem; opacity: 0.9; margin-top: 8px; }
+    .apple-info { background: var(--gray-900); border-radius: var(--radius-md); padding: 24px; text-align: center; color: white; }
+    .mada-info { background: linear-gradient(135deg, #00704a 0%, #005a3a 100%); border-radius: var(--radius-md); padding: 24px; text-align: center; color: white; }
+    .pay-btn { width: 100%; padding: 18px; font-size: 1.05rem; font-weight: 800; border-radius: var(--radius-md); margin-top: 8px; position: relative; overflow: hidden; }
+    .pay-error { display:none; background:#fff0f0; border:1px solid #ffcccc; border-radius:10px; padding:10px 14px; margin-bottom:14px; color:#c0392b; font-size:0.88rem; text-align:right; }
+    .pay-error.show { display:block; }
+    .success-overlay { display: none; position: fixed; inset: 0; background: rgba(26,31,48,0.7); z-index: 9990; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+    .success-overlay.show { display: flex; }
+    .success-box { background: var(--white); border-radius: var(--radius-xl); padding: 52px 48px; text-align: center; max-width: 440px; width: 90%; box-shadow: var(--shadow-lg); animation: bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+    .success-icon { font-size: 5rem; margin-bottom: 20px; }
+    .success-box h2 { font-size: 1.8rem; font-weight: 800; color: var(--gray-900); margin-bottom: 10px; }
+    .success-box p { color: var(--gray-500); margin-bottom: 8px; font-size: 0.95rem; }
+    .success-plan-chip { display: inline-block; background: var(--gradient-sun); color: var(--white); font-size: 0.88rem; font-weight: 700; padding: 6px 20px; border-radius: 50px; margin: 12px 0 24px; }
+    .success-ref { font-size: 0.78rem; color: var(--gray-400); margin-bottom: 28px; }
+    .processing { display: none; }
+    .processing.show { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .dot-pulse { display: flex; gap: 5px; }
+    .dot-pulse span { width: 8px; height: 8px; background: var(--white); border-radius: 50%; animation: dotBounce 1.2s infinite ease-in-out; }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotBounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+    @media (max-width: 860px) { .payment-layout { grid-template-columns: 1fr; } .order-card { position: static; } }
+    @media (max-width: 480px) { .pay-row { grid-template-columns: 1fr; } .method-tabs { gap: 8px; } .method-tab { padding: 9px 12px; font-size: 0.82rem; } }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="logo" href="index.html"><img src="shams.png" alt="شعار شمس" class="logo-img"></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="pricing.html">الاشتراكات</a></li>
+    </ul>
+    <div class="nav-auth-btns">
+      <button class="nav-login-btn" onclick="location.href='login.html'">تسجيل الدخول</button>
+    </div>
+    <button class="hamburger" id="hamburger">☰</button>
+  </div>
+</nav>
+
+<div class="payment-page">
+  <div class="payment-layout">
+
+    <!-- FORM -->
+    <div class="pay-card">
+      <h2>إتمام الدفع 🔐</h2>
+      <p class="sub">أدخل بيانات الدفع لتفعيل اشتراكك فوراً</p>
+
+      <div class="pay-steps">
+        <div class="step done"><div class="step-num">✓</div><span class="step-label">اختيار الباقة</span></div>
+        <div class="step-line done"></div>
+        <div class="step active"><div class="step-num">2</div><span class="step-label">الدفع</span></div>
+        <div class="step-line"></div>
+        <div class="step inactive"><div class="step-num">3</div><span class="step-label">التأكيد</span></div>
+      </div>
+
+      <div class="method-tabs">
+        <button class="method-tab active" onclick="switchMethod('card', this)"><span class="tab-icon"></span> بطاقة بنكية</button>
+        <button class="method-tab" onclick="switchMethod('mada', this)"><span class="tab-icon"></span> مدى</button>
+        <button class="method-tab" onclick="switchMethod('stc', this)"><span class="tab-icon"></span> STC Pay</button>
+        <button class="method-tab" onclick="switchMethod('apple', this)"><span class="tab-icon"></span> Apple Pay</button>
+      </div>
+
+      <!-- Card -->
+      <div id="method-card">
+        <div class="pay-field">
+          <label>اسم حامل البطاقة</label>
+          <input class="pay-input" type="text" id="cardName" placeholder="أحمد محمد" style="direction:rtl" />
+        </div>
+        <div class="pay-field">
+          <label>رقم البطاقة</label>
+          <div class="card-input-wrap">
+            <input class="pay-input" type="text" id="cardNumber" placeholder="0000  0000  0000  0000" maxlength="19" oninput="formatCard(this)" />
+            <div class="card-brand"><span class="brand-visa">VISA</span><span class="brand-mc">MC</span></div>
+          </div>
+        </div>
+        <div class="pay-row">
+          <div class="pay-field"><label>تاريخ الانتهاء</label><input class="pay-input" type="text" id="cardExpiry" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)" /></div>
+          <div class="pay-field"><label>رمز CVV</label><input class="pay-input" type="text" id="cardCvv" placeholder="•••" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'')" /></div>
+        </div>
+      </div>
+
+      <!-- Mada -->
+      <div id="method-mada" class="alt-method">
+        <div class="mada-info"><div style="font-size:2.5rem;margin-bottom:10px"></div><strong style="font-size:1.1rem">الدفع عبر مدى</strong><p>أدخل رقم بطاقة مدى وسيتم توجيهك لإتمام الدفع</p></div>
+        <div class="pay-field" style="margin-top:20px">
+          <label>رقم بطاقة مدى</label>
+          <input class="pay-input" type="text" id="madaNumber" placeholder="0000  0000  0000  0000" maxlength="19" oninput="formatCard(this)" />
+        </div>
+        <div class="pay-row">
+          <div class="pay-field"><label>تاريخ الانتهاء</label><input class="pay-input" type="text" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)" /></div>
+          <div class="pay-field"><label>CVV</label><input class="pay-input" type="text" placeholder="•••" maxlength="4" /></div>
+        </div>
+      </div>
+
+      <!-- STC -->
+      <div id="method-stc" class="alt-method">
+        <div class="stc-info"><div class="stc-logo"></div><strong style="font-size:1.1rem">STC Pay</strong><p>أدخل رقم جوالك المرتبط بـ STC Pay</p></div>
+        <div class="pay-field" style="margin-top:20px">
+          <label>رقم الجوال</label>
+          <input class="pay-input" type="tel" id="stcPhone" placeholder="05XXXXXXXX" style="direction:ltr;text-align:right" />
+        </div>
+      </div>
+
+      <!-- Apple Pay -->
+      <div id="method-apple" class="alt-method">
+        <div class="apple-info"><div style="font-size:3rem;margin-bottom:10px"></div><strong style="font-size:1.1rem">Apple Pay</strong><p style="margin-top:8px;opacity:0.85">استخدم Face ID أو Touch ID لإتمام الدفع بأمان</p></div>
+        <div style="text-align:center;margin-top:20px;padding:16px;background:var(--gray-50);border-radius:var(--radius-md);border:1px dashed var(--gray-300);color:var(--gray-500);font-size:0.88rem">🔒 Apple Pay متاح عبر Safari على أجهزة Apple فقط</div>
+      </div>
+
+      <!-- رسالة خطأ -->
+      <div class="pay-error" id="payError"></div>
+
+      <button class="btn-primary pay-btn" id="payBtn" onclick="processPayment()">
+        <span id="payBtnText">🔒 ادفع الآن</span>
+        <div class="processing" id="processingAnim"><div class="dot-pulse"><span></span><span></span><span></span></div></div>
+      </button>
+
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:18px;flex-wrap:wrap">
+        <span style="font-size:0.75rem;color:var(--gray-400)">🔒 SSL مشفّر</span>
+        <span style="font-size:0.75rem;color:var(--gray-400)">✅ PCI DSS معتمد</span>
+        <span style="font-size:0.75rem;color:var(--gray-400)">🛡 ضمان 14 يوم</span>
+      </div>
+    </div>
+
+    <!-- ORDER SUMMARY -->
+    <div>
+      <div class="order-card">
+        <h3>ملخص الطلب</h3>
+        <div class="order-plan">
+          <div class="order-plan-icon">⚡</div>
+          <div>
+            <div class="order-plan-name" id="orderPlanName">باقة الاحترافية</div>
+            <div class="order-plan-sub" id="orderPlanSub">اشتراك شهري</div>
+          </div>
+          <span class="badge badge-gold" style="margin-right:auto" id="orderPlanBadge">شهري</span>
+        </div>
+        <div class="order-lines">
+          <div class="order-line"><span>سعر الباقة</span><strong id="orderBasePrice">49 ر.س</strong></div>
+          <div class="order-line"><span>ضريبة القيمة المضافة (15%)</span><strong id="orderTax">7.35 ر.س</strong></div>
+          <div class="order-line" id="discountLine" style="display:none;color:var(--success)"><span>خصم الدفع السنوي</span><strong id="orderDiscount" style="color:var(--success)">— 0 ر.س</strong></div>
+        </div>
+        <div class="order-total"><span>الإجمالي</span><span class="total-price" id="orderTotal">56.35 ر.س</span></div>
+        <div class="order-secure">🔐 جميع المعاملات مشفّرة ومؤمّنة</div>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--gray-100)">
+          <p style="font-size:0.82rem;font-weight:700;color:var(--gray-700);margin-bottom:10px">ما تحصل عليه:</p>
+          <div id="planFeaturesList" style="display:flex;flex-direction:column;gap:7px"></div>
+        </div>
+      </div>
+
+      <div style="background:var(--white);border-radius:var(--radius-md);padding:20px;margin-top:16px;border:1px solid var(--gray-100)">
+        <p style="font-size:0.88rem;font-weight:600;color:var(--gray-700);margin-bottom:10px">🎫 كود الخصم</p>
+        <div style="display:flex;gap:8px">
+          <input id="couponInput" style="flex:1;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:var(--font-body);font-size:0.88rem;outline:none;direction:ltr;text-align:right" placeholder="SHAMS20" />
+          <button onclick="applyCoupon()" style="background:var(--gray-900);color:var(--white);border:none;padding:10px 18px;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:0.88rem;font-weight:700;cursor:pointer">تطبيق</button>
+        </div>
+        <div id="couponMsg" style="font-size:0.78rem;margin-top:6px;display:none"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div class="success-icon">🎉</div>
+    <h2>تم الدفع بنجاح!</h2>
+    <p>تم تفعيل اشتراكك فوراً</p>
+    <div class="success-plan-chip" id="successPlanChip">باقة الاحترافية</div>
+    <p class="success-ref" id="successRef">رقم المرجع: SH-2025-XXXX</p>
+    <button class="btn-primary" style="width:100%;justify-content:center;border-radius:var(--radius-md)" onclick="location.href='index.html'">ابدأ استخدام شمس ←</button>
+    <p style="margin-top:14px;font-size:0.82rem;color:var(--gray-400)">سيصلك إيصال الدفع على بريدك الإلكتروني</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// ── بيانات الباقة من localStorage ─────────────────────────
+const planData  = JSON.parse(localStorage.getItem('shams_plan') || '{"name":"الاحترافية","price":49,"yearly":false,"planKey":"pro"}');
+const basePrice = planData.price || 49;
+const tax       = +(basePrice * 0.15).toFixed(2);
+let   finalTotal = +(basePrice + tax).toFixed(2);
+
+document.getElementById('orderPlanName').textContent  = `باقة ${planData.name}`;
+document.getElementById('orderPlanSub').textContent   = planData.yearly ? 'اشتراك سنوي' : 'اشتراك شهري';
+document.getElementById('orderPlanBadge').textContent = planData.yearly ? 'سنوي' : 'شهري';
+document.getElementById('orderBasePrice').textContent = `${basePrice} ر.س`;
+document.getElementById('orderTax').textContent       = `${tax} ر.س`;
+document.getElementById('orderTotal').textContent     = `${finalTotal} ر.س`;
+
+const featMap = {
+  'الاحترافية': ['حسابات غير محدودة','تقارير PDF مفصّلة','مساعد ذكي غير محدود','مقارنة 5 شركات'],
+  'المؤسسية':   ['كل مميزات الاحترافية','API للتكامل','إدارة الفريق','دعم هاتفي مباشر'],
+};
+const feats = featMap[planData.name] || featMap['الاحترافية'];
+const fl = document.getElementById('planFeaturesList');
+feats.forEach(f => { fl.innerHTML += `<div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--gray-600)"><span style="color:var(--success)">✅</span>${f}</div>`; });
+
+// ── تبديل طريقة الدفع ─────────────────────────────────────
+function switchMethod(method, btn) {
+  document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['card','mada','stc','apple'].forEach(m => {
+    const el = document.getElementById(`method-${m}`);
+    if (el) { el.style.display = m === method ? 'block' : 'none'; }
+  });
+}
+
+// ── تنسيق البطاقة ─────────────────────────────────────────
+function formatCard(input) {
+  let v = input.value.replace(/\D/g, '').substring(0, 16);
+  input.value = v.replace(/(.{4})/g, '$1  ').trim();
+}
+function formatExpiry(input) {
+  let v = input.value.replace(/\D/g, '').substring(0, 4);
+  if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2);
+  input.value = v;
+}
+
+// ── كود الخصم ─────────────────────────────────────────────
+function applyCoupon() {
+  const code = document.getElementById('couponInput').value.trim().toUpperCase();
+  const msg  = document.getElementById('couponMsg');
+  if (code === 'SHAMS20') {
+    const disc = +(basePrice * 0.20).toFixed(2);
+    finalTotal = +(basePrice * 0.80 + tax).toFixed(2);
+    msg.style.display = 'block'; msg.style.color = 'var(--success)';
+    msg.textContent = '✅ تم تطبيق خصم 20%!';
+    document.getElementById('orderDiscount').textContent = `— ${disc} ر.س`;
+    document.getElementById('discountLine').style.display = 'flex';
+    document.getElementById('orderTotal').textContent = `${finalTotal} ر.س`;
+  } else {
+    msg.style.display = 'block'; msg.style.color = 'var(--danger)';
+    msg.textContent = '❌ كود الخصم غير صحيح';
+  }
+}
+
+function showPayError(msg) {
+  const el = document.getElementById('payError');
+  el.textContent = msg; el.classList.add('show');
+}
+function hidePayError() { document.getElementById('payError').classList.remove('show'); }
+
+// ── معالجة الدفع والحفظ في Supabase ──────────────────────
+async function processPayment() {
+  hidePayError();
+
+  const activeTab    = document.querySelector('.method-tab.active');
+  const activeMethod = activeTab?.dataset?.method || 'card';
+
+  // تحقق بسيط من البطاقة
+  if (activeMethod === 'card') {
+    const cardNum = document.getElementById('cardNumber').value.replace(/\s/g,'');
+    const expiry  = document.getElementById('cardExpiry').value;
+    const cvv     = document.getElementById('cardCvv').value;
+    if (cardNum.length < 16) { showPayError('الرجاء إدخال رقم بطاقة صحيح'); return; }
+    if (expiry.length < 7)   { showPayError('الرجاء إدخال تاريخ انتهاء صحيح'); return; }
+    if (cvv.length < 3)      { showPayError('الرجاء إدخال رمز CVV'); return; }
+  }
+
+  const btn  = document.getElementById('payBtn');
+  const text = document.getElementById('payBtnText');
+  const anim = document.getElementById('processingAnim');
+  btn.disabled = true;
+  text.style.display = 'none';
+  anim.classList.add('show');
+
+  // محاكاة بوابة الدفع (2.8 ثانية)
+  await new Promise(r => setTimeout(r, 2800));
+
+  anim.classList.remove('show');
+  text.style.display = 'inline';
+
+  try {
+    // 1) تحقق من الجلسة
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      // لو غير مسجل — احفظ الباقة وأرسله لتسجيل الدخول
+      localStorage.setItem('shams_plan', JSON.stringify(planData));
+      location.href = 'login.html';
+      return;
+    }
+
+    const userId = session.user.id;
+
+    // 2) جيب plan_id من جدول subscription_plans
+    const { data: planRow } = await sb
+      .from('subscription_plans')
+      .select('id')
+      .eq('plan_key', planData.planKey || 'pro')
+      .single();
+
+    const planId = planRow?.id || null;
+
+    // 3) أنشئ الاشتراك في user_subscriptions
+    const expiresAt = new Date();
+    planData.yearly
+      ? expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+      : expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    const { data: subData, error: subErr } = await sb
+      .from('user_subscriptions')
+      .insert({
+        user_id:    userId,
+        plan_id:    planId,
+        status:     'active',
+        expires_at: expiresAt.toISOString()
+      })
+      .select('id')
+      .single();
+
+    if (subErr) throw subErr;
+
+    // 4) احفظ الدفع في payments
+    const ref = 'SH-' + Date.now();
+    const methodMap = { card:'card', mada:'mada', stc:'stc_pay', apple:'apple_pay' };
+
+    const { error: payErr } = await sb.from('payments').insert({
+      user_id:         userId,
+      subscription_id: subData.id,
+      amount:          finalTotal,
+      payment_method:  methodMap[activeMethod] || 'card',
+      status:          'success',
+      order_ref:       ref
+    });
+
+    if (payErr) throw payErr;
+
+    // 5) نجاح — اظهر شاشة التأكيد
+    localStorage.removeItem('shams_plan');
+    document.getElementById('successPlanChip').textContent = `باقة ${planData.name}`;
+    document.getElementById('successRef').textContent      = `رقم المرجع: ${ref}`;
+    document.getElementById('successOverlay').classList.add('show');
+
+  } catch (err) {
+    showPayError('حدث خطأ أثناء معالجة الدفع، حاول مجدداً');
+    btn.disabled = false;
+    console.error(err);
+  }
+}
+
+// ربط data-method على أزرار التبويب
+document.querySelectorAll('.method-tab').forEach((btn, i) => {
+  const methods = ['card','mada','stc','apple'];
+  btn.dataset.method = methods[i] || 'card';
+});
+</script>
+
+</body>
+</html>
